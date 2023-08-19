@@ -9,6 +9,12 @@ import (
 	"github.com/SeungyeonHwang/go-binance-autotrader/pkg/binance"
 )
 
+//	{
+//	  "account":"sub1"
+//	  "symbol": "BTCUSDT",
+//	  "amount": 30.0,
+//	  "positionSide": "SHORT",
+//	}
 type TradingViewPayload struct {
 	Account      string  `json:"account"`
 	Symbol       string  `json:"symbol"`
@@ -16,9 +22,10 @@ type TradingViewPayload struct {
 	PositionSide string  `json:"positionSide"`
 }
 
-// StartWebServer 함수는 웹서버를 시작합니다.
 func StartWebServer() {
+	http.HandleFunc("/getbalance", webhookHandler)
 	http.HandleFunc("/webhook", webhookHandler)
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 

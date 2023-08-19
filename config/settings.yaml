@@ -2,12 +2,18 @@ binance:
   master:
     api_key: BPstPv2ZVn17eZE9GckwrrD5UvzJ10VuzRlE71ZrZvYuzAKTm0CocLE8mb2RJkIf
     secret_key: S69jkCZL13jQpZngi6y4HeTB6wLlDw7Qhi90D430jcm2ryUEybx0rrmxFnWYJpIj
+  
+  # 1H
   sub1:
     api_key: Nvua1wjTiyEoSRzqUmt4Rz3zfFoMXNpAI6IN0LtUc5RmAM69StGASpYm2Wxu2dqTS
     secret_key: tO2NytHpoJ6d6DF3Y6Pvob1B7ArOye22M4TBP557C8HOf1e9d5QRMsR8OuD0CuTP
+  
+  # 4H
   # sub2:
   #   api_key: Nvua1wjTiyEoSRzqUmt4Rz3zfFoMXNpAI6IN0LtUc5RmAM69StGASpYm2Wxu2dqTS
   #   secret_key: tO2NytHpoJ6d6DF3Y6Pvob1B7ArOye22M4TBP557C8HOf1e9d5QRMsR8OuD0CuTP
+
+  # 1D
   # sub3:
   #   api_key: Nvua1wjTiyEoSRzqUmt4Rz3zfFoMXNpAI6IN0LtUc5RmAM69StGASpYm2Wxu2dqTS
   #   secret_key: tO2NytHpoJ6d6DF3Y6Pvob1B7ArOye22M4TBP557C8HOf1e9d5QRMsR8OuD0CuTP
