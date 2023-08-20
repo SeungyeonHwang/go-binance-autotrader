@@ -1,10 +1,16 @@
 package config
 
 import (
-	"github.com/SeungyeonHwang/go-binance-autotrader/pkg/handlers"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
+
+type Config struct {
+	MasterAPIKey    string
+	MasterSecretKey string
+	Sub1APIKey      string
+	Sub1SecretKey   string
+}
 
 type SSMConfigLoader struct {
 	SSMClient *ssm.SSM
@@ -23,13 +29,13 @@ func (loader *SSMConfigLoader) GetParameter(paramName string) (string, error) {
 	return *result.Parameter.Value, nil
 }
 
-func LoadConfigurationFromSSM(ssmClient *ssm.SSM) (*handlers.Config, error) {
+func LoadConfigurationFromSSM(ssmClient *ssm.SSM) (*Config, error) {
 	loader := SSMConfigLoader{SSMClient: ssmClient}
 	return loadConfigFromSSM(loader)
 }
 
-func loadConfigFromSSM(loader SSMConfigLoader) (*handlers.Config, error) {
-	config := &handlers.Config{}
+func loadConfigFromSSM(loader SSMConfigLoader) (*Config, error) {
+	config := &Config{}
 
 	var err error
 	config.MasterAPIKey, err = loader.GetParameter("/binance/master/api_key")

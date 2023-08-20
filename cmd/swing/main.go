@@ -17,7 +17,7 @@ import (
 
 var (
 	echolambda *echoadapter.EchoLambda
-	configData *handlers.Config
+	configData *config.Config
 )
 
 func init() {

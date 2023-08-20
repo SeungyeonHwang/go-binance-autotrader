@@ -1,10 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Globals:
-  Function:
-    Environment:
-      Variables:
-        AWS_PROFILE: hwang_personal
 
 Resources:
   SwingApi:
@@ -23,6 +18,7 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingBalanceFunction.Arn}/invocations
+
   SwingBalanceFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -37,9 +33,9 @@ Resources:
             Method: get
       Policies:
         - AWSLambda_FullAccess
-      # VpcConfig:                   # VPC 설정 추가
-      #   SubnetIds:
-      #     - subnet-xxxxxxxxxxxxx   # VPC의 실제 서브넷 ID로 대체해야 함
-      #   SecurityGroupIds:
-      #     - sg-xxxxxxxxxxxxx       # VPC의 실제 보안 그룹 ID로 대체해야 함
-      # ReservedConcurrentExecutions: 5  # 동시 실행을 위한 예약 설정. 적절한 수치로 조정 가능
+      VpcConfig:
+        SubnetIds:
+          - subnet-0efcde944b0b461c2
+        SecurityGroupIds:
+          - sg-079a6d2cb621722ac
+      ReservedConcurrentExecutions: 5  # 동시 실행을 위한 예약 설정. 적절한 수치로 조정 가능

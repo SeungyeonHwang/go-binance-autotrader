@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.327
 	github.com/awslabs/aws-lambda-go-api-proxy v0.14.0
 	github.com/labstack/echo/v4 v4.11.1
-	github.com/sirupsen/logrus v1.8.1
 )
 
 require (
