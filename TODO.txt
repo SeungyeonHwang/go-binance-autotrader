@@ -1,7 +1,4 @@
 	//TODO:
-		webHook 기능(Trading View webhook에 의해 트리거됨, order를 실행한다)(물타기)
-
-	//TODO:
 		Slack 통지(order trigger) 기능
 
 

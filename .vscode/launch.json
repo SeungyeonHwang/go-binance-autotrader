@@ -3,18 +3,22 @@
         {
             "type": "aws-sam",
             "request": "direct-invoke",
-            "name": "API go-binance-autotrader:SwingBalanceFunction",
+            "name": "API go-binance-autotrader:SwingWebHookOrderFunction",
             "invokeTarget": {
                 "target": "api",
                 "templatePath": "${workspaceFolder}/template.yaml",
-                "logicalId": "SwingBalanceFunction"
+                "logicalId": "SwingWebHookOrderFunction"
             },
             "api": {
-                "path": "/",
-                "httpMethod": "get",
+                "path": "/swing/webhook-order",
+                "httpMethod": "post",
                 "payload": {
                     "json": {}
                 }
+            },
+                "aws": {
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
             }
         },
         {
