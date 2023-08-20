@@ -30,7 +30,7 @@ func fetchAllBalances(config *config.Config) (string, error) {
 		label       string
 	}{
 		{binance.MASTER_ACCOUNT, "", "Master"},
-		{binance.MASTER_ACCOUNT, binance.SUB1_EMAIL, "Sub1"},
+		{binance.SUB1_ACCOUNT, binance.SUB1_EMAIL, "Sub1"},
 		// {binance.MASTER_ACCOUNT, binance.SUB2_EMAIL, "Sub2"},
 		// {binance.MASTER_ACCOUNT, binance.SUB3_EMAIL, "Sub3"},
 	}
@@ -43,7 +43,7 @@ func fetchAllBalances(config *config.Config) (string, error) {
 			return "", err
 		}
 		balances[i] = balance
-		resultStrings[i] = fmt.Sprintf("%s Balance: %d", acc.label, balances[i])
+		resultStrings[i] = fmt.Sprintf("%-12s %s Balance: %d", acc.label+":", acc.label, balances[i])
 	}
 
 	result := strings.Join(resultStrings, "\n")

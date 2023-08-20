@@ -13,7 +13,7 @@ import (
 )
 
 func GetFuturesBalance(account string, config *config.Config, subAccountEmail ...string) (int, error) {
-	if account == "master" && len(subAccountEmail) == 0 {
+	if account == MASTER_ACCOUNT {
 		return fetchBalance(config.MasterAPIKey, config.MasterSecretKey)
 	} else {
 		return fetchSubAccountBalance(config.MasterAPIKey, config.MasterSecretKey, subAccountEmail[0])

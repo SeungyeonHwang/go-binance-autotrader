@@ -1,12 +1,9 @@
-	TODO:잔액 조회 기능
-		binance.GetFuturesBalance("master")
-		binance.GetFuturesBalance("sub1", "hwang.sy.test.1@gmail.com")
-		binance.GetFuturesBalance("sub2", "hwang.sy.test.2@gmail.com")
-		binance.GetFuturesBalance("sub3", "hwang.sy.test.3@gmail.com")
-
 	//TODO:
 		webHook 기능(Trading View webhook에 의해 트리거됨, order를 실행한다)(물타기)
 		webhook.StartWebServer()
+
+	//TODO: 
+		포지션 정보
 
 	//TODO:
 		Slack 통지 기능 + Slack 알람 설정하기	
@@ -22,9 +19,6 @@
 
 	//TODO:
 	//DELETE DB
-
-	//TODO:
-	//포지션 조회 기능
 
 	//TODO:
 	//TP/SL 기능
