@@ -26,7 +26,10 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 	queryString := "timestamp=" + timestamp
 	signature := createHmac(queryString, secretKey)
 
-	req, err := http.NewRequest("GET", url+"?"+queryString+"&signature="+signature, nil)
+	fullURL := url + "?" + queryString + "&signature=" + signature
+	log.Println("Requesting:", fullURL)
+
+	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		log.Printf("Error creating request: %v", err)
 		return 0, fmt.Errorf("could not create request: %v", err)
@@ -38,6 +41,7 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 		log.Printf("Error executing request: %v", err)
 		return 0, fmt.Errorf("request failed: %v", err)
 	}
+	log.Printf("Response status: %s, headers: %v", resp.Status, resp.Header)
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -45,6 +49,7 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 		log.Printf("Error reading response body: %v", err)
 		return 0, fmt.Errorf("failed to read response body: %v", err)
 	}
+	log.Printf("Response body: %s", string(body))
 
 	var balanceData []map[string]interface{}
 	if err := json.Unmarshal(body, &balanceData); err != nil {
@@ -53,6 +58,7 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 	}
 
 	for _, assetData := range balanceData {
+		log.Printf("Processing asset data: %v", assetData)
 		if asset, exists := assetData["asset"]; exists && asset == "USDT" {
 			balanceFloat, err := strconv.ParseFloat(assetData["balance"].(string), 64)
 			if err != nil {

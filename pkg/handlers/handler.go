@@ -34,18 +34,30 @@ func fetchAllBalances(config *config.Config) (string, error) {
 		// {binance.MASTER_ACCOUNT, binance.SUB2_EMAIL, "Sub2"},
 		// {binance.MASTER_ACCOUNT, binance.SUB3_EMAIL, "Sub3"},
 	}
-	balances := make([]int, len(accounts))
-	resultStrings := make([]string, len(accounts))
 
-	for i, acc := range accounts {
+	var resultBuilder strings.Builder
+
+	for _, acc := range accounts {
 		balance, err := binance.GetFuturesBalance(acc.accountType, config, acc.email)
 		if err != nil {
 			return "", err
 		}
-		balances[i] = balance
-		resultStrings[i] = fmt.Sprintf("%-12s %s Balance: %d", acc.label+":", acc.label, balances[i])
+
+		resultBuilder.WriteString(fmt.Sprintf("Account     | %s\n", acc.label))
+		resultBuilder.WriteString("--------------------\n")
+
+		if acc.label == "Sub1" {
+			unitPrice := int(float64(balance) * 0.05 * 15)
+			resultBuilder.WriteString(fmt.Sprintf("Time        | 1H\n"))
+			resultBuilder.WriteString(fmt.Sprintf("Leverage    | X15\n"))
+			resultBuilder.WriteString(fmt.Sprintf("Unit Price  | %d\n", unitPrice))
+			resultBuilder.WriteString(fmt.Sprintf("Balance     | %d\n", balance))
+		} else {
+			resultBuilder.WriteString(fmt.Sprintf("Balance     | %d\n", balance))
+		}
+		resultBuilder.WriteString("--------------------\n")
+		resultBuilder.WriteString("\n")
 	}
 
-	result := strings.Join(resultStrings, "\n")
-	return result, nil
+	return resultBuilder.String(), nil
 }

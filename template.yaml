@@ -1,6 +1,15 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 
+Globals:
+  Function:
+    VpcConfig:
+      SubnetIds:
+        - subnet-0efcde944b0b461c2
+      SecurityGroupIds:
+        - sg-079a6d2cb621722ac
+    ReservedConcurrentExecutions: 5
+
 Resources:
   SwingApi:
     Type: AWS::Serverless::Api
@@ -18,6 +27,13 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingBalanceFunction.Arn}/invocations
+          /tradingview-trigger-order:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TriggerOrderFunction.Arn}/invocations
 
   SwingBalanceFunction:
     Type: AWS::Serverless::Function
@@ -33,9 +49,18 @@ Resources:
             Method: get
       Policies:
         - AWSLambda_FullAccess
-      VpcConfig:
-        SubnetIds:
-          - subnet-0efcde944b0b461c2
-        SecurityGroupIds:
-          - sg-079a6d2cb621722ac
-      ReservedConcurrentExecutions: 5  # 동시 실행을 위한 예약 설정. 적절한 수치로 조정 가능
+
+  SwingWebHookOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cmd/swing
+      Handler: main.go
+      Runtime: go1.x
+      Events:
+        SwingWebHookOrder:
+          Type: Api
+          Properties:
+            Path: swing/webhook-order
+            Method: post
+      Policies:
+        - AWSLambda_FullAccess
