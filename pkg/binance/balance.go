@@ -7,12 +7,52 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
 )
 
-func GetFuturesBalance(account string, config *config.Config, subAccountEmail ...string) (int, error) {
+func FetchAllBalances(config *config.Config) (string, error) {
+	accounts := []struct {
+		accountType string
+		email       string
+		label       string
+	}{
+		{MASTER_ACCOUNT, "", "Master"},
+		{SUB1_ACCOUNT, SUB1_EMAIL, "Sub1"},
+		// {MASTER_ACCOUNT, SUB2_EMAIL, "Sub2"},
+		// {MASTER_ACCOUNT, SUB3_EMAIL, "Sub3"},
+	}
+
+	var resultBuilder strings.Builder
+
+	for _, acc := range accounts {
+		balance, err := getFuturesBalance(acc.accountType, config, acc.email)
+		if err != nil {
+			return "", err
+		}
+
+		resultBuilder.WriteString(fmt.Sprintf("Account     | %s\n", acc.label))
+		resultBuilder.WriteString("--------------------\n")
+
+		if acc.label == "Sub1" {
+			unitPrice := int(float64(balance) * 0.05 * 15)
+			resultBuilder.WriteString(fmt.Sprintf("Time        | 1H\n"))
+			resultBuilder.WriteString(fmt.Sprintf("Leverage    | X15\n"))
+			resultBuilder.WriteString(fmt.Sprintf("Unit Price  | %d\n", unitPrice))
+			resultBuilder.WriteString(fmt.Sprintf("Balance     | *%d\n", balance))
+		} else {
+			resultBuilder.WriteString(fmt.Sprintf("Balance     | *%d\n", balance))
+		}
+		resultBuilder.WriteString("--------------------\n")
+		resultBuilder.WriteString("\n")
+	}
+
+	return resultBuilder.String(), nil
+}
+
+func getFuturesBalance(account string, config *config.Config, subAccountEmail ...string) (int, error) {
 	if account == MASTER_ACCOUNT {
 		return fetchBalance(config.MasterAPIKey, config.MasterSecretKey)
 	} else {
@@ -41,7 +81,6 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 		log.Printf("Error executing request: %v", err)
 		return 0, fmt.Errorf("request failed: %v", err)
 	}
-	log.Printf("Response status: %s, headers: %v", resp.Status, resp.Header)
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -49,7 +88,6 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 		log.Printf("Error reading response body: %v", err)
 		return 0, fmt.Errorf("failed to read response body: %v", err)
 	}
-	log.Printf("Response body: %s", string(body))
 
 	var balanceData []map[string]interface{}
 	if err := json.Unmarshal(body, &balanceData); err != nil {
@@ -58,7 +96,6 @@ func fetchBalance(apiKey string, secretKey string) (int, error) {
 	}
 
 	for _, assetData := range balanceData {
-		log.Printf("Processing asset data: %v", assetData)
 		if asset, exists := assetData["asset"]; exists && asset == "USDT" {
 			balanceFloat, err := strconv.ParseFloat(assetData["balance"].(string), 64)
 			if err != nil {

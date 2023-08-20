@@ -5,38 +5,45 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strings"
 
+	"github.com/SeungyeonHwang/go-binance-autotrader/config"
+	"github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
 )
 
-func NewFuturesClient(account string) (*futures.Client, error) {
-	// log.Printf("Initializing a new Futures client for account: %s", account)
-	// config, err := getConfig()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if creds, ok := config.Binance[account]; ok {
-	// 	return binance.NewFuturesClient(creds.APIKey, creds.SecretKey), nil
-	// }
-	// return nil, fmt.Errorf("account %s not found in the configuration", account)
-	return nil, nil
+func NewFuturesClient(config *config.Config, account string) (*futures.Client, error) {
+	log.Printf("Initializing a new Futures client for account: %s", account)
+
+	var apiKey, secretKey string
+	switch strings.ToLower(account) {
+	case MASTER_ACCOUNT:
+		apiKey = config.MasterAPIKey
+		secretKey = config.MasterSecretKey
+	case SUB1_ACCOUNT:
+		apiKey = config.Sub1APIKey
+		secretKey = config.Sub1SecretKey
+	default:
+		return nil, fmt.Errorf("account %s not found in the configuration", account)
+	}
+
+	return binance.NewFuturesClient(apiKey, secretKey), nil
 }
 
-// (PlaceFuturesMarketOrder 함수 및 관련된 함수들)
+func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSide string, leverage, amountInUSDT int) error {
+	symbol = FormatSymbol(symbol)
+	positionSide = ToUpper(positionSide)
 
-func PlaceFuturesMarketOrder(account, symbol string, amountInUSDT float64, positionSide string) error {
-	log.Printf("Placing Futures Market Order for account: %s, symbol: %s, amount: %f, position: %s", account, symbol, amountInUSDT, positionSide)
-	client, err := NewFuturesClient(account)
+	client, err := NewFuturesClient(config, account)
 	if err != nil {
 		return err
 	}
 
-	// Set leverage to 1 and margin type to CROSSED
-	if err := changeLeverage(client.APIKey, client.SecretKey, symbol, 1); err != nil {
+	if err := changeLeverage(client.APIKey, client.SecretKey, symbol, leverage); err != nil {
 		log.Printf("Failed to set leverage: %s", err)
 		return err
 	}
-	if err := changeMarginType(client.APIKey, client.SecretKey, symbol, "CROSSED"); err != nil {
+	if err := changeMarginType(client.APIKey, client.SecretKey, symbol, CROSSED); err != nil {
 		log.Printf("Failed to set margin type: %s", err)
 		return err
 	}
@@ -45,39 +52,37 @@ func PlaceFuturesMarketOrder(account, symbol string, amountInUSDT float64, posit
 		log.Printf("Failed to set position side mode to Hedge: %s", err)
 	}
 
-	// 현재 BTC의 가격을 가져옵니다.
-	price, err := getCurrentFuturesPrice(client, symbol) // 여기서 client를 전달합니다.
+	price, err := getCurrentFuturesPrice(client, symbol)
 	if err != nil {
 		log.Printf("Failed to fetch the current price: %s", err)
 		return err
 	}
 
-	// 주어진 USDT 양에 해당하는 BTC의 양을 계산합니다.
-	quantity := amountInUSDT / price
+	quantity := float64(amountInUSDT) / price
 
-	stepSize, err := getStepSizeForSymbol(account, symbol) // Added 'account' as a parameter
+	stepSize, err := getStepSizeForSymbol(client, symbol)
 	if err != nil {
 		log.Printf("Failed to fetch step size: %s", err)
 		return err
 	}
 	trimmedQuantity := trimQuantity(quantity, stepSize)
-	roundedQuantity := math.Round(trimmedQuantity*1e6) / 1e6 // Rounding to 6 decimal places
+	roundedQuantity := math.Round(trimmedQuantity*1e6) / 1e6
 
 	var orderSide futures.SideType
-	orderType := "OPEN" // orderType의 기본값을 "OPEN"으로 설정
-	if orderType == "OPEN" {
-		if positionSide == "LONG" {
+	orderType := OPEN
+	if orderType == OPEN {
+		if positionSide == LONG {
 			orderSide = futures.SideTypeBuy
-		} else if positionSide == "SHORT" {
+		} else if positionSide == SHORT {
 			orderSide = futures.SideTypeSell
 		} else {
 			return fmt.Errorf("invalid position side provided: %s", positionSide)
 		}
-	} else if orderType == "CLOSE" {
-		if positionSide == "SHORT" {
+	} else if orderType == CLOSE {
+		if positionSide == SHORT {
 			orderSide = futures.SideTypeBuy
 			quantity = -quantity
-		} else if positionSide == "LONG" {
+		} else if positionSide == LONG {
 			orderSide = futures.SideTypeSell
 		} else {
 			return fmt.Errorf("invalid position side provided: %s", positionSide)

@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
 	"github.com/SeungyeonHwang/go-binance-autotrader/pkg/binance"
@@ -15,49 +14,34 @@ type Handler struct {
 	Config *config.Config
 }
 
+// balance
 func (h *Handler) CheckBalance(c echo.Context) error {
-	val, err := fetchAllBalances(h.Config)
+	val, err := binance.FetchAllBalances(h.Config)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to fetch balance")
 	}
 	return c.String(http.StatusOK, val)
 }
 
-func fetchAllBalances(config *config.Config) (string, error) {
-	accounts := []struct {
-		accountType string
-		email       string
-		label       string
-	}{
-		{binance.MASTER_ACCOUNT, "", "Master"},
-		{binance.SUB1_ACCOUNT, binance.SUB1_EMAIL, "Sub1"},
-		// {binance.MASTER_ACCOUNT, binance.SUB2_EMAIL, "Sub2"},
-		// {binance.MASTER_ACCOUNT, binance.SUB3_EMAIL, "Sub3"},
+// webhook trigger order
+// https://x8oktqy9c1.execute-api.ap-northeast-1.amazonaws.com/Prod/swing/webhook-order
+//
+//	{
+//	  "account": "Master",
+//	  "symbol": "{{ticker}}",
+//	  "positionSide": "Long",
+//	  "leverage":2,
+//	  "amount": 30
+//	}
+func (h *Handler) WebhookOrder(c echo.Context) error {
+	orderReq := new(TradingViewPayload)
+	if err := c.Bind(orderReq); err != nil {
+		return c.String(http.StatusBadRequest, "Failed to parse request body")
 	}
 
-	var resultBuilder strings.Builder
-
-	for _, acc := range accounts {
-		balance, err := binance.GetFuturesBalance(acc.accountType, config, acc.email)
-		if err != nil {
-			return "", err
-		}
-
-		resultBuilder.WriteString(fmt.Sprintf("Account     | %s\n", acc.label))
-		resultBuilder.WriteString("--------------------\n")
-
-		if acc.label == "Sub1" {
-			unitPrice := int(float64(balance) * 0.05 * 15)
-			resultBuilder.WriteString(fmt.Sprintf("Time        | 1H\n"))
-			resultBuilder.WriteString(fmt.Sprintf("Leverage    | X15\n"))
-			resultBuilder.WriteString(fmt.Sprintf("Unit Price  | %d\n", unitPrice))
-			resultBuilder.WriteString(fmt.Sprintf("Balance     | %d\n", balance))
-		} else {
-			resultBuilder.WriteString(fmt.Sprintf("Balance     | %d\n", balance))
-		}
-		resultBuilder.WriteString("--------------------\n")
-		resultBuilder.WriteString("\n")
+	err := binance.PlaceFuturesMarketOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.Leverage, orderReq.Amount)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to place order: %s", err.Error()))
 	}
-
-	return resultBuilder.String(), nil
+	return c.String(http.StatusOK, "Order placed successfully!")
 }

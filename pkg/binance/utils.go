@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/adshao/go-binance/v2/futures"
 )
@@ -15,11 +16,7 @@ func trimQuantity(quantity, stepSize float64) float64 {
 	return trimmedQuantity
 }
 
-func getStepSizeForSymbol(account, symbol string) (float64, error) {
-	client, err := NewFuturesClient(account)
-	if err != nil {
-		return 0, err
-	}
+func getStepSizeForSymbol(client *futures.Client, symbol string) (float64, error) {
 	// Fetch the exchange info
 	info, err := client.NewExchangeInfoService().Do(context.Background())
 	if err != nil {
@@ -51,4 +48,17 @@ func getCurrentFuturesPrice(client *futures.Client, symbol string) (float64, err
 		}
 	}
 	return 0, fmt.Errorf("price for symbol %s not found", symbol)
+}
+
+func FormatSymbol(s string) string {
+	s = strings.ToUpper(s)
+	if strings.Contains(s, "USDT") {
+		s = strings.Split(s, "USDT")[0] + "USDT"
+	}
+	return s
+}
+
+// ToUpper converts the provided string to uppercase.
+func ToUpper(s string) string {
+	return strings.ToUpper(s)
 }

@@ -10,6 +10,23 @@
                 "logicalId": "SwingBalanceFunction"
             },
             "api": {
+                "path": "/",
+                "httpMethod": "get",
+                "payload": {
+                    "json": {}
+                }
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
+            "name": "API go-binance-autotrader:SwingBalanceFunction",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "SwingBalanceFunction"
+            },
+            "api": {
                 "path": "/swing/balance",
                 "httpMethod": "get",
                 "payload": {

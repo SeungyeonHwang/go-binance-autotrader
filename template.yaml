@@ -11,6 +11,31 @@ Globals:
     ReservedConcurrentExecutions: 5
 
 Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: arn:aws:ssm:ap-northeast-1:027320337304:parameter/binance/*
+
   SwingApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -27,13 +52,13 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingBalanceFunction.Arn}/invocations
-          /tradingview-trigger-order:
+          /swing/webhook-order:
             post:
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TriggerOrderFunction.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingWebHookOrderFunction.Arn}/invocations
 
   SwingBalanceFunction:
     Type: AWS::Serverless::Function
@@ -41,14 +66,13 @@ Resources:
       CodeUri: cmd/swing
       Handler: main.go
       Runtime: go1.x
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         SwingBalance:
           Type: Api
           Properties:
             Path: /swing/balance
             Method: get
-      Policies:
-        - AWSLambda_FullAccess
 
   SwingWebHookOrderFunction:
     Type: AWS::Serverless::Function
@@ -56,11 +80,10 @@ Resources:
       CodeUri: cmd/swing
       Handler: main.go
       Runtime: go1.x
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         SwingWebHookOrder:
           Type: Api
           Properties:
-            Path: swing/webhook-order
+            Path: /swing/webhook-order
             Method: post
-      Policies:
-        - AWSLambda_FullAccess
