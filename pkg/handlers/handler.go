@@ -27,9 +27,9 @@ func (h *Handler) CheckBalance(c echo.Context) error {
 // https://x8oktqy9c1.execute-api.ap-northeast-1.amazonaws.com/Prod/swing/webhook-order
 //
 //	{
-//	  "account": "Master",
+//	  "account": "master",
 //	  "symbol": "{{ticker}}",
-//	  "positionSide": "Long",
+//	  "positionSide": "long",
 //	  "leverage":2,
 //	  "amount": 30
 //	}

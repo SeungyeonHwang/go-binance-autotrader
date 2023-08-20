@@ -1,10 +1,13 @@
 package binance
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -17,15 +20,12 @@ func trimQuantity(quantity, stepSize float64) float64 {
 }
 
 func getStepSizeForSymbol(client *futures.Client, symbol string) (float64, error) {
-	// Fetch the exchange info
 	info, err := client.NewExchangeInfoService().Do(context.Background())
 	if err != nil {
 		return 0, err
 	}
 	for _, s := range info.Symbols {
 		if s.Symbol == symbol {
-			// Parse the stepSize from the symbol's filter.
-			// Assuming the filter type for step size is "LOT_SIZE".
 			for _, f := range s.Filters {
 				if f["filterType"] == "LOT_SIZE" {
 					return strconv.ParseFloat(f["stepSize"].(string), 64)
@@ -58,7 +58,32 @@ func FormatSymbol(s string) string {
 	return s
 }
 
-// ToUpper converts the provided string to uppercase.
 func ToUpper(s string) string {
 	return strings.ToUpper(s)
+}
+
+type SlackPayload struct {
+	Text string `json:"text"`
+}
+
+func SendSlackNotification(webhookUrl, msg string) error {
+	slackBody, _ := json.Marshal(SlackPayload{Text: msg})
+	req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	if buf.String() != "ok" {
+		return err
+	}
+	return nil
 }

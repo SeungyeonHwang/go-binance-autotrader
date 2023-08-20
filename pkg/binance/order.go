@@ -90,14 +90,20 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 	} else {
 		return fmt.Errorf("invalid order type provided: %s", orderType)
 	}
-
-	order, err := client.NewCreateOrderService().Symbol(symbol).
+	_, err = client.NewCreateOrderService().Symbol(symbol).
 		Side(orderSide).PositionSide(futures.PositionSideType(positionSide)).Type(futures.OrderTypeMarket).
 		Quantity(fmt.Sprintf("%.6f", roundedQuantity)).Do(context.Background())
 	if err != nil {
 		log.Printf("Futures Market Order failed: %s", err)
 		return err
 	}
-	log.Printf("Order ID: %d", order.OrderID)
+
+	msg := fmt.Sprintf("테스트 알림: Order가 성공적으로 생성되었습니다.\n계정: %s\n심볼: %s\n포지션: %s\n레버리지: %d\n주문량: %.6f",
+		account, symbol, positionSide, leverage, roundedQuantity)
+
+	err = SendSlackNotification("https://hooks.slack.com/services/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", msg)
+	if err != nil {
+		log.Printf("Failed to send Slack notification: %s", err)
+	}
 	return nil
 }
