@@ -6,20 +6,20 @@ import (
 	"log"
 	"math"
 
-	binance "github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
 )
 
 func NewFuturesClient(account string) (*futures.Client, error) {
-	log.Printf("Initializing a new Futures client for account: %s", account)
-	config, err := getConfig()
-	if err != nil {
-		return nil, err
-	}
-	if creds, ok := config.Binance[account]; ok {
-		return binance.NewFuturesClient(creds.APIKey, creds.SecretKey), nil
-	}
-	return nil, fmt.Errorf("account %s not found in the configuration", account)
+	// log.Printf("Initializing a new Futures client for account: %s", account)
+	// config, err := getConfig()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if creds, ok := config.Binance[account]; ok {
+	// 	return binance.NewFuturesClient(creds.APIKey, creds.SecretKey), nil
+	// }
+	// return nil, fmt.Errorf("account %s not found in the configuration", account)
+	return nil, nil
 }
 
 // (PlaceFuturesMarketOrder 함수 및 관련된 함수들)

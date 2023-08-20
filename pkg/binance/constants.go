@@ -1,0 +1,11 @@
+package binance
+
+const (
+	MASTER_ACCOUNT = "master"
+	SUB1_ACCOUNT   = "sub1"
+	SUB1_EMAIL     = "hwang.sy.test.1@gmail.com"
+	SUB2_ACCOUNT   = "sub2"
+	SUB2_EMAIL     = "hwang.sy.test.2@gmail.com"
+	SUB3_ACCOUNT   = "sub3"
+	SUB3_EMAIL     = "hwang.sy.test.3@gmail.com"
+)

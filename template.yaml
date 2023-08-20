@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    Environment:
+      Variables:
+        AWS_PROFILE: hwang_personal
+
+Resources:
+  SwingApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      DefinitionBody:
+        openapi: "3.0.0"
+        info:
+          version: "1.0.0"
+        paths:
+          /swing/balance:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingBalanceFunction.Arn}/invocations
+  SwingBalanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cmd/swing
+      Handler: main.go
+      Runtime: go1.x
+      Events:
+        SwingBalance:
+          Type: Api
+          Properties:
+            Path: /swing/balance
+            Method: get
+      Policies:
+        - AWSLambda_FullAccess
+      # VpcConfig:                   # VPC 설정 추가
+      #   SubnetIds:
+      #     - subnet-xxxxxxxxxxxxx   # VPC의 실제 서브넷 ID로 대체해야 함
+      #   SecurityGroupIds:
+      #     - sg-xxxxxxxxxxxxx       # VPC의 실제 보안 그룹 ID로 대체해야 함
+      # ReservedConcurrentExecutions: 5  # 동시 실행을 위한 예약 설정. 적절한 수치로 조정 가능

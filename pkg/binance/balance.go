@@ -6,72 +6,74 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 )
 
-func GetFuturesBalance(account string, subAccountEmail ...string) {
-	config, err := getConfig()
-	if err != nil {
-		log.Fatalf("Could not fetch configuration: %v", err)
-	}
+func GetFuturesBalance(account string, subAccountEmail ...string) (int, error) {
+	// config, err := getConfig()
+	// if err != nil {
+	// 	return 0, fmt.Errorf("Could not fetch configuration: %v", err)
+	// }
+	// config, err := getConfig()
+	// 	if err != nil {
+	// 		return 0, fmt.Errorf("Could not fetch configuration: %v", err)
+	// 	}
 
-	if account == "master" || len(subAccountEmail) == 0 {
-		fetchBalance(config.Binance[account])
-	} else {
-		// Fetch balance for sub accounts using master credentials
-		fetchSubAccountBalance(config.Binance["master"], subAccountEmail[0])
-	}
-}
+	// 	if account == "master" || len(subAccountEmail) == 0 {
+	// 		return fetchBalance(config.Binance[account])
+	// 	} else {
+	// 		return fetchSubAccountBalance(config.Binance["master"], subAccountEmail[0])
+	// 	}
+	// }
 
-func fetchBalance(credentials struct {
-	APIKey    string `yaml:"api_key"`
-	SecretKey string `yaml:"secret_key"`
-}) {
-	url := baseURL + "/fapi/v2/balance"
-	timestamp := fmt.Sprintf("%d", time.Now().Unix()*1000)
-	queryString := "timestamp=" + timestamp
-	signature := createHmac(queryString, credentials.SecretKey)
+	// func fetchBalance(credentials struct {
+	// 	APIKey    string `yaml:"api_key"`
+	// 	SecretKey string `yaml:"secret_key"`
+	// }) (int, error) {
+	// 	url := baseURL + "/fapi/v2/balance"
+	// 	timestamp := fmt.Sprintf("%d", time.Now().Unix()*1000)
+	// 	queryString := "timestamp=" + timestamp
+	// 	signature := createHmac(queryString, credentials.SecretKey)
 
-	req, err := http.NewRequest("GET", url+"?"+queryString+"&signature="+signature, nil)
-	if err != nil {
-		log.Fatalf("Could not create request: %v", err)
-	}
-	req.Header.Add("X-MBX-APIKEY", credentials.APIKey)
+	// 	req, err := http.NewRequest("GET", url+"?"+queryString+"&signature="+signature, nil)
+	// 	if err != nil {
+	// 		log.Fatalf("Could not create request: %v", err)
+	// 	}
+	// 	req.Header.Add("X-MBX-APIKEY", credentials.APIKey)
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatalf("Request failed: %v", err)
-	}
-	defer resp.Body.Close()
+	// 	resp, err := http.DefaultClient.Do(req)
+	// 	if err != nil {
+	// 		log.Fatalf("Request failed: %v", err)
+	// 	}
+	// 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Failed to read response body: %v", err)
-	}
+	// 	body, err := ioutil.ReadAll(resp.Body)
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to read response body: %v", err)
+	// 	}
 
-	var balanceData []map[string]interface{}
-	if err := json.Unmarshal(body, &balanceData); err != nil {
-		log.Fatalf("JSON unmarshalling failed: %s", err)
-	}
+	// 	var balanceData []map[string]interface{}
+	// 	if err := json.Unmarshal(body, &balanceData); err != nil {
+	// 		log.Fatalf("JSON unmarshalling failed: %s", err)
+	// 	}
 
-	for _, asset := range balanceData {
-		if asset["asset"] == "USDT" {
-			balanceFloat, err := strconv.ParseFloat(asset["balance"].(string), 64)
-			if err != nil {
-				log.Fatalf("Failed to parse balance to float: %v", err)
-			}
-			balanceInt := int(balanceFloat)
-			fmt.Printf("Asset: %s, Balance: %d\n", asset["asset"], balanceInt)
-			break
-		}
-	}
+	// 	for _, asset := range balanceData {
+	// 		if asset["asset"] == "USDT" {
+	// 			balanceFloat, err := strconv.ParseFloat(asset["balance"].(string), 64)
+	// 			if err != nil {
+	// 				return 0, fmt.Errorf("Failed to parse balance to float: %v", err)
+	// 			}
+	// 			balanceInt := int(balanceFloat)
+	// 			return balanceInt, nil
+	// 		}
+	// 	}
+	return 0, fmt.Errorf("USDT not found in the response")
 }
 
 func fetchSubAccountBalance(masterCredentials struct {
 	APIKey    string `yaml:"api_key"`
 	SecretKey string `yaml:"secret_key"`
-}, subAccountEmail string) {
+}, subAccountEmail string) (int, error) {
 	// 엔드포인트
 	url := "https://api.binance.com/sapi/v1/sub-account/futures/account"
 	timestamp := fmt.Sprintf("%d", time.Now().Unix()*1000)
@@ -116,17 +118,10 @@ func fetchSubAccountBalance(masterCredentials struct {
 		log.Fatalf("JSON unmarshalling failed: %s", err)
 	}
 
-	foundUSDT := false
 	for _, asset := range responseData.Assets {
 		if asset.Asset == "USDT" {
-			balanceInt := int(asset.WalletBalance)
-			fmt.Printf("Sub-Account Asset: %s, Wallet Balance: %d\n", asset.Asset, balanceInt)
-			foundUSDT = true
-			break
+			return int(asset.WalletBalance), nil
 		}
 	}
-
-	if !foundUSDT {
-		log.Println("USDT not found in the response.")
-	}
+	return 0, fmt.Errorf("USDT not found in the response")
 }
