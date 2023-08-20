@@ -1,64 +1,55 @@
 package config
 
 import (
-	"strings"
-
+	"github.com/SeungyeonHwang/go-binance-autotrader/pkg/handlers"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
-type Config struct {
-	Binance map[string]struct {
-		APIKey    string
-		SecretKey string
-	}
+type SSMConfigLoader struct {
+	SSMClient *ssm.SSM
 }
 
-func GetConfig(sess *session.Session) (Config, error) {
-	ssmClient := ssm.New(sess)
-
-	paramNames := []string{
-		"/binance/master/api_key",
-		"/binance/master/secret_key",
-		"/binance/sub1/api_key",
-		"/binance/sub1/secret_key",
-	}
-
-	paramInput := &ssm.GetParametersInput{
-		Names:          aws.StringSlice(paramNames),
+func (loader *SSMConfigLoader) GetParameter(paramName string) (string, error) {
+	input := &ssm.GetParameterInput{
+		Name:           aws.String(paramName),
 		WithDecryption: aws.Bool(true),
 	}
-
-	resp, err := ssmClient.GetParameters(paramInput)
+	result, err := loader.SSMClient.GetParameter(input)
 	if err != nil {
-		return Config{}, err
+		return "", err
 	}
 
-	config := Config{
-		Binance: make(map[string]struct {
-			APIKey    string
-			SecretKey string
-		}),
+	return *result.Parameter.Value, nil
+}
+
+func LoadConfigurationFromSSM(ssmClient *ssm.SSM) (*handlers.Config, error) {
+	loader := SSMConfigLoader{SSMClient: ssmClient}
+	return loadConfigFromSSM(loader)
+}
+
+func loadConfigFromSSM(loader SSMConfigLoader) (*handlers.Config, error) {
+	config := &handlers.Config{}
+
+	var err error
+	config.MasterAPIKey, err = loader.GetParameter("/binance/master/api_key")
+	if err != nil {
+		return nil, err
 	}
 
-	for _, param := range resp.Parameters {
-		parts := strings.Split(aws.StringValue(param.Name), "/")
-		if len(parts) < 4 {
-			continue
-		}
-		accountType := parts[2]
-		keyType := parts[3]
+	config.MasterSecretKey, err = loader.GetParameter("/binance/master/secret_key")
+	if err != nil {
+		return nil, err
+	}
 
-		acc := config.Binance[accountType]
+	config.Sub1APIKey, err = loader.GetParameter("/binance/sub1/api_key")
+	if err != nil {
+		return nil, err
+	}
 
-		if keyType == "api_key" {
-			acc.APIKey = aws.StringValue(param.Value)
-		} else if keyType == "secret_key" {
-			acc.SecretKey = aws.StringValue(param.Value)
-		}
-
-		config.Binance[accountType] = acc
+	config.Sub1SecretKey, err = loader.GetParameter("/binance/sub1/secret_key")
+	if err != nil {
+		return nil, err
 	}
 
 	return config, nil

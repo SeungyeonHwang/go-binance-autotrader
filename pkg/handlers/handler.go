@@ -2,14 +2,23 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/pkg/binance"
 	"github.com/labstack/echo/v4"
 )
 
+type Config struct {
+	MasterAPIKey    string
+	MasterSecretKey string
+	Sub1APIKey      string
+	Sub1SecretKey   string
+}
+
 type Handler struct {
-	Echo *echo.Echo
+	Echo   *echo.Echo
+	Config *Config
 }
 
 func (h *Handler) CheckBalance(c echo.Context) error {
@@ -17,7 +26,11 @@ func (h *Handler) CheckBalance(c echo.Context) error {
 	// if err != nil {
 	// 	return c.String(http.StatusInternalServerError, "Failed to fetch balance")
 	// }
-	return c.String(http.StatusOK, "hello world")
+	log.Printf("MasterAPIKey: %s", h.Config.MasterAPIKey)
+	log.Printf("MasterSecretKey: %s", h.Config.MasterSecretKey)
+	log.Printf("Sub1APIKey: %s", h.Config.Sub1APIKey)
+	log.Printf("Sub1SecretKey: %s", h.Config.Sub1SecretKey)
+	return c.String(http.StatusOK, "helloworld")
 }
 
 func fetchAllBalances() (string, error) {
