@@ -1,1 +1,1 @@
-sam local start-api
+sam local start-api --profile hwang_personal

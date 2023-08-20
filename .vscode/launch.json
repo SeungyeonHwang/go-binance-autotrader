@@ -15,6 +15,10 @@
                 "payload": {
                     "json": {}
                 }
+            },
+            "aws": {
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
             }
         }
     ]
