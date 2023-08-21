@@ -26,13 +26,13 @@ func (h *Handler) CheckBalance(c echo.Context) error {
 // webhook trigger order
 // https://x8oktqy9c1.execute-api.ap-northeast-1.amazonaws.com/Prod/swing/webhook-order
 //
-//	{
-//	  "account": "master",
-//	  "symbol": "{{ticker}}",
-//	  "positionSide": "long",
-//	  "leverage":2,
-//	  "amount": 30
-//	}
+	// {
+	//   "account": "master",
+	//   "symbol": "{{ticker}}",
+	//   "positionSide": "long",
+	//   "leverage":2,
+	//   "amount": 30
+	// }
 func (h *Handler) WebhookOrder(c echo.Context) error {
 	orderReq := new(TradingViewPayload)
 	if err := c.Bind(orderReq); err != nil {
