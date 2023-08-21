@@ -9,6 +9,7 @@ func SetUp(e *echo.Echo, h *handlers.Handler) {
 	swingAPI := e.Group("swing")
 	{
 		swingAPI.GET("/balance", h.CheckBalance)
+		swingAPI.GET("/position", h.CheckPosition)
 		swingAPI.POST("/webhook-order", h.WebhookOrder)
 	}
 }
