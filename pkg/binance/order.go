@@ -39,6 +39,27 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		return err
 	}
 
+	roi, err := getROIForSymbol(client.APIKey, client.SecretKey, symbol)
+	if err != nil {
+		log.Printf("Failed to get ROI: %s", err)
+		return err
+	}
+
+	// ROI가 0일 경우 바로 종료
+	if roi == 0 {
+		return nil
+	}
+
+	// ROI가 (1 * leverage)%와 (-1 * leverage)% 사이일 경우 주문하지 않음
+	if roi > -1.0*float64(leverage) && roi < 1.0*float64(leverage) {
+		return nil
+	}
+
+	// ROI가 (1 * leverage)%보다 크면 주문량을 절반으로 줄임
+	if roi > 1.0*float64(leverage) {
+		amountInUSDT = amountInUSDT / 2
+	}
+
 	if err := changeLeverage(client.APIKey, client.SecretKey, symbol, leverage); err != nil {
 		log.Printf("Failed to set leverage: %s", err)
 		return err
