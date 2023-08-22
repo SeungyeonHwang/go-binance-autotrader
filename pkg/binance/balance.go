@@ -281,10 +281,10 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, error
 	return responseData.Positions, totalCrossUnPnl, nil
 }
 
-func getROIForSymbol(apiKey, secretKey, targetSymbol string) (float64, error) {
+func positionExistsForSymbol(apiKey, secretKey, targetSymbol string) (bool, error) {
 	positions, _, err := fetchPositions(apiKey, secretKey)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	for _, position := range positions {
@@ -294,19 +294,38 @@ func getROIForSymbol(apiKey, secretKey, targetSymbol string) (float64, error) {
 				continue
 			}
 			if amt != 0 {
-				profit, errProfit := strconv.ParseFloat(position.UnrealizedProfit, 64)
-				initialMargin, errMargin := strconv.ParseFloat(position.InitialMargin, 64)
-
-				if errProfit != nil || errMargin != nil {
-					continue
-				}
-
-				if initialMargin == 0 {
-					return 0, fmt.Errorf("initial margin for symbol %s is zero", targetSymbol)
-				}
-
-				return (profit / initialMargin) * 100, nil
+				return true, nil
 			}
+		}
+	}
+	return false, nil
+}
+
+func getROIForSymbol(apiKey, secretKey, targetSymbol string) (float64, error) {
+	exists, err := positionExistsForSymbol(apiKey, secretKey, targetSymbol)
+	if err != nil || !exists {
+		return 0, fmt.Errorf("position for symbol %s not found", targetSymbol)
+	}
+
+	positions, _, err := fetchPositions(apiKey, secretKey)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, position := range positions {
+		if strings.EqualFold(position.Symbol, targetSymbol) {
+			profit, errProfit := strconv.ParseFloat(position.UnrealizedProfit, 64)
+			initialMargin, errMargin := strconv.ParseFloat(position.InitialMargin, 64)
+
+			if errProfit != nil || errMargin != nil {
+				continue
+			}
+
+			if initialMargin == 0 {
+				return 0, fmt.Errorf("initial margin for symbol %s is zero", targetSymbol)
+			}
+
+			return (profit / initialMargin) * 100, nil
 		}
 	}
 	return 0, fmt.Errorf("position for symbol %s not found", targetSymbol)

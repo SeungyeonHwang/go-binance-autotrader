@@ -39,26 +39,27 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		return err
 	}
 
+	// Entry == false
 	if !entry {
-		roi, err := getROIForSymbol(client.APIKey, client.SecretKey, symbol)
+		newAmount, err := roiValidation(client.APIKey, client.SecretKey, symbol, leverage, amountInUSDT)
 		if err != nil {
-			log.Printf("Failed to get ROI: %s", err)
+			return err
+		}
+		amountInUSDT = newAmount
+	} else {
+
+		//Entry == true
+		exists, err := positionExistsForSymbol(client.APIKey, client.SecretKey, symbol)
+		if err != nil {
 			return err
 		}
 
-		// ROI가 0일 경우 바로 종료
-		if roi == 0 {
-			return nil
-		}
-
-		// ROI가 (1 * leverage)%와 (-1 * leverage)% 사이일 경우 주문하지 않음
-		if roi > -1.0*float64(leverage) && roi < 1.0*float64(leverage) {
-			return nil
-		}
-
-		// ROI가 (1 * leverage)%보다 크면 주문량을 절반으로 줄임
-		if roi > 1.0*float64(leverage) {
-			amountInUSDT = amountInUSDT / 2
+		if entry && exists {
+			newAmount, err := roiValidation(client.APIKey, client.SecretKey, symbol, leverage, amountInUSDT)
+			if err != nil {
+				return err
+			}
+			amountInUSDT = newAmount
 		}
 	}
 
@@ -133,4 +134,34 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		log.Printf("Failed to send Slack notification: %s", err)
 	}
 	return nil
+}
+
+func roiValidation(apiKey, secretKey, targetSymbol string, leverage, amountInUSDT int) (int, error) {
+	roi, err := getROIForSymbol(apiKey, secretKey, targetSymbol)
+	if err != nil {
+		log.Printf("Failed to get ROI: %s", err)
+		return 0, err
+	}
+
+	// 1. roi = 0 -> error return
+	if roi == 0 {
+		return 0, fmt.Errorf("ROI is zero for symbol %s", targetSymbol)
+	}
+
+	// 2. roi -1 * leverage -> amountInUSDT (e.g -20% / leverage 15)
+	if roi < -1.0*float64(leverage) {
+		return amountInUSDT, nil
+	}
+
+	// 3. roi 1 * leverage -> amountInUSDT / 2 (e.g 30% / leverage 15)
+	if roi > 1.0*float64(leverage) {
+		return amountInUSDT / 2, nil
+	}
+
+	// 4. 그 외의 값 +-1 * leverage -> error return (e.g 1%/ leverage 15)
+	if roi > -1.0*float64(leverage) && roi < 1.0*float64(leverage) {
+		return 0, fmt.Errorf("ROI not within acceptable range for position with symbol %s", targetSymbol)
+	}
+
+	return 0, err
 }
