@@ -30,7 +30,7 @@ func NewFuturesClient(config *config.Config, account string) (*futures.Client, e
 	return binance.NewFuturesClient(apiKey, secretKey), nil
 }
 
-func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSide string, leverage, amountInUSDT int) error {
+func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSide string, leverage, amountInUSDT int, entry bool) error {
 	symbol = FormatSymbol(symbol)
 	positionSide = ToUpper(positionSide)
 
@@ -39,25 +39,27 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		return err
 	}
 
-	roi, err := getROIForSymbol(client.APIKey, client.SecretKey, symbol)
-	if err != nil {
-		log.Printf("Failed to get ROI: %s", err)
-		return err
-	}
+	if !entry {
+		roi, err := getROIForSymbol(client.APIKey, client.SecretKey, symbol)
+		if err != nil {
+			log.Printf("Failed to get ROI: %s", err)
+			return err
+		}
 
-	// ROI가 0일 경우 바로 종료
-	if roi == 0 {
-		return nil
-	}
+		// ROI가 0일 경우 바로 종료
+		if roi == 0 {
+			return nil
+		}
 
-	// ROI가 (1 * leverage)%와 (-1 * leverage)% 사이일 경우 주문하지 않음
-	if roi > -1.0*float64(leverage) && roi < 1.0*float64(leverage) {
-		return nil
-	}
+		// ROI가 (1 * leverage)%와 (-1 * leverage)% 사이일 경우 주문하지 않음
+		if roi > -1.0*float64(leverage) && roi < 1.0*float64(leverage) {
+			return nil
+		}
 
-	// ROI가 (1 * leverage)%보다 크면 주문량을 절반으로 줄임
-	if roi > 1.0*float64(leverage) {
-		amountInUSDT = amountInUSDT / 2
+		// ROI가 (1 * leverage)%보다 크면 주문량을 절반으로 줄임
+		if roi > 1.0*float64(leverage) {
+			amountInUSDT = amountInUSDT / 2
+		}
 	}
 
 	if err := changeLeverage(client.APIKey, client.SecretKey, symbol, leverage); err != nil {
@@ -119,8 +121,12 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		return err
 	}
 
-	msg := fmt.Sprintf("테스트 알림: Order가 성공적으로 생성되었습니다.\n계정: %s\n심볼: %s\n포지션: %s\n레버리지: %d\n주문량: %.6f",
-		account, symbol, positionSide, leverage, roundedQuantity)
+	msg := ":bell: Order has been successfully created.\n"
+	msg += "Account: " + account + "\n"
+	msg += "Symbol: " + symbol + "\n"
+	msg += "Position: " + positionSide + "\n"
+	msg += "Leverage: " + fmt.Sprintf("x%d", leverage) + "\n"
+	msg += "Order Amount: " + fmt.Sprintf("%d USDT", amountInUSDT)
 
 	err = SendSlackNotification("https://hooks.slack.com/services/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", msg)
 	if err != nil {

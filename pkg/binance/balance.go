@@ -40,19 +40,17 @@ func FetchAllBalances(config *config.Config) (string, error) {
 			return "", err
 		}
 
-		resultBuilder.WriteString(fmt.Sprintf("Account     | %s\n", acc.label))
-		resultBuilder.WriteString("--------------------\n")
+		resultBuilder.WriteString(":bank: Account: " + acc.label + "\n")
+		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 
 		if acc.label == "Sub1" {
 			unitPrice := int(float64(balance) * 0.05 * 15)
-			resultBuilder.WriteString(fmt.Sprintf("Time        | 1H\n"))
-			resultBuilder.WriteString(fmt.Sprintf("Leverage    | X15\n"))
-			resultBuilder.WriteString(fmt.Sprintf("Unit Price  | %d\n", unitPrice))
-			resultBuilder.WriteString(fmt.Sprintf("Balance     | *%d\n", balance))
-		} else {
-			resultBuilder.WriteString(fmt.Sprintf("Balance     | *%d\n", balance))
+			resultBuilder.WriteString(":clock1: Time: 1H\n")
+			resultBuilder.WriteString(":rocket: Leverage: X15\n")
+			resultBuilder.WriteString(":dollar: Unit Price: " + fmt.Sprintf("%d", unitPrice) + "\n")
 		}
-		resultBuilder.WriteString("--------------------\n")
+		resultBuilder.WriteString(":moneybag: Balance: " + fmt.Sprintf("*%d", balance) + "\n")
+		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 		resultBuilder.WriteString("\n")
 	}
 
@@ -178,6 +176,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 	}
 
 	var resultBuilder strings.Builder
+	lineSeparator := strings.Repeat("-", 40) + "\n"
 
 	for _, acc := range accounts {
 		var apiKey, secretKey string
@@ -197,39 +196,39 @@ func FetchAllPositions(config *config.Config) (string, error) {
 			return "", err
 		}
 
-		resultBuilder.WriteString(fmt.Sprintf("%-15s | Total: %-20.1f\n", acc.label, totalCrossUnPnl))
-		resultBuilder.WriteString("------------------------------------\n")
+		resultBuilder.WriteString(acc.label + "\n")
+		resultBuilder.WriteString(lineSeparator)
+
+		resultBuilder.WriteString("Total: " + fmt.Sprintf("%.1f", totalCrossUnPnl) + "\n")
 
 		for _, position := range positions {
 			amt, err := strconv.ParseFloat(position.PositionAmt, 64)
-			if err != nil {
+			if err != nil || amt == 0 {
 				continue
 			}
-			if amt != 0 {
-				profit, errProfit := strconv.ParseFloat(position.UnrealizedProfit, 64)
-				initialMargin, errMargin := strconv.ParseFloat(position.InitialMargin, 64)
 
-				if errProfit != nil || errMargin != nil {
-					continue
-				}
-
-				roi := 0.0
-				if initialMargin != 0 {
-					roi = (profit / initialMargin) * 100
-				}
-
-				profitStr := fmt.Sprintf("%.1f (%.2f%%)", profit, roi)
-				if profit > 0 {
-					profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
-				}
-				resultBuilder.WriteString(fmt.Sprintf("%-15s | %-30s\n", position.Symbol, profitStr))
+			profit, errProfit := strconv.ParseFloat(position.UnrealizedProfit, 64)
+			initialMargin, errMargin := strconv.ParseFloat(position.InitialMargin, 64)
+			if errProfit != nil || errMargin != nil {
+				continue
 			}
+
+			roi := 0.0
+			if initialMargin != 0 {
+				roi = (profit / initialMargin) * 100
+			}
+
+			profitStr := fmt.Sprintf("%.1f (%.2f%%)", profit, roi)
+			if profit > 0 {
+				profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
+			}
+			resultBuilder.WriteString(position.Symbol + ": " + profitStr + "\n")
 		}
 
-		resultBuilder.WriteString("------------------------------------\n")
+		resultBuilder.WriteString(lineSeparator)
 		resultBuilder.WriteString("\n")
-
 	}
+
 	return resultBuilder.String(), nil
 }
 
@@ -310,5 +309,5 @@ func getROIForSymbol(apiKey, secretKey, targetSymbol string) (float64, error) {
 			}
 		}
 	}
-	return -1, fmt.Errorf("position for symbol %s not found", targetSymbol)
+	return 0, fmt.Errorf("position for symbol %s not found", targetSymbol)
 }

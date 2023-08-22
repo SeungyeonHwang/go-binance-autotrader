@@ -6,4 +6,5 @@ type TradingViewPayload struct {
 	PositionSide string `json:"positionSide"`
 	Leverage     int    `json:"leverage"`
 	Amount       int    `json:"amount"`
+	Entry        bool   `json:"entry,omitempty"`
 }
