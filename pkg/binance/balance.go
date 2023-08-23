@@ -44,11 +44,14 @@ func FetchAllBalances(config *config.Config) (string, error) {
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 
 		if acc.label == "Sub1" {
-			unitPrice := int(float64(balance) * 0.05 * 15)
+			reverseUnitPrice := int(float64(balance) * 0.05 * 15)
+			trendUnitPrice := int(float64(balance) * 0.15 * 15)
 			resultBuilder.WriteString(":clock1: Time: 1H\n")
 			resultBuilder.WriteString(":rocket: Leverage: X15\n")
-			resultBuilder.WriteString(":dollar: Unit Price: " + fmt.Sprintf("%d", unitPrice) + "\n")
+			resultBuilder.WriteString(":dollar: Reverse Unit Price: " + fmt.Sprintf("%d", reverseUnitPrice) + "\n")
+			resultBuilder.WriteString(":dollar: Trend Unit Price: " + fmt.Sprintf("%d", trendUnitPrice) + "\n")
 		}
+
 		resultBuilder.WriteString(":moneybag: Balance: " + fmt.Sprintf("*%d", balance) + "\n")
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 		resultBuilder.WriteString("\n")
