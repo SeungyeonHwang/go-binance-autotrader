@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -314,6 +315,16 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float
 		log.Printf("Error converting totalInitialMargin to float: %v", err)
 		return nil, 0, 0, 0, fmt.Errorf("failed to convert totalInitialMargin: %v", err)
 	}
+
+	sort.Slice(responseData.Positions, func(i, j int) bool {
+		profitI, errI := strconv.ParseFloat(responseData.Positions[i].UnrealizedProfit, 64)
+		profitJ, errJ := strconv.ParseFloat(responseData.Positions[j].UnrealizedProfit, 64)
+
+		if errI != nil || errJ != nil {
+			return false
+		}
+		return profitI > profitJ
+	})
 
 	return responseData.Positions, totalCrossUnPnl, availableBalance, totalInitialMargin, nil
 }
