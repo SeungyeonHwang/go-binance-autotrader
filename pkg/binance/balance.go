@@ -40,21 +40,22 @@ func FetchAllBalances(config *config.Config) (string, error) {
 			return "", err
 		}
 
-		resultBuilder.WriteString(":bank: Account: " + acc.label + "\n")
+		resultBuilder.WriteString(":bank: " + acc.label + "\n")
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 
 		if acc.label == "Sub1" {
 			reverseUnitPrice := int(float64(balance) * 0.05 * 15)
 			trendUnitPrice := int(float64(balance) * 0.15 * 15)
 			resultBuilder.WriteString(":clock1: Time: 1H\n")
+			resultBuilder.WriteString(":hammer_and_pick: Method: 농부매매\n")
 			resultBuilder.WriteString(":rocket: Leverage: X15\n")
-			resultBuilder.WriteString(":dollar: Reverse Unit Price: " + fmt.Sprintf("%d", reverseUnitPrice) + "\n")
-			resultBuilder.WriteString(":dollar: Trend Unit Price: " + fmt.Sprintf("%d", trendUnitPrice) + "\n")
+			resultBuilder.WriteString(":dollar: Reverse Unit Price: $" + fmt.Sprintf("%d", reverseUnitPrice) + "\n")
+			resultBuilder.WriteString(":dollar: Trend Unit Price: $" + fmt.Sprintf("%d", trendUnitPrice) + "\n")
 		}
 
-		resultBuilder.WriteString(":moneybag: Balance: " + fmt.Sprintf("*%d", balance) + "\n")
+		resultBuilder.WriteString(":moneybag: Balance: $" + fmt.Sprintf("%d", balance) + "\n")
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
-		resultBuilder.WriteString("\n")
+		resultBuilder.WriteString("\n\n")
 	}
 
 	return resultBuilder.String(), nil
@@ -194,15 +195,34 @@ func FetchAllPositions(config *config.Config) (string, error) {
 			return "", fmt.Errorf("unknown account type: %s", acc.accountType)
 		}
 
-		positions, totalCrossUnPnl, err := fetchPositions(apiKey, secretKey)
+		positions, totalCrossUnPnl, availableBalance, totalInitialMargin, err := fetchPositions(apiKey, secretKey)
 		if err != nil {
 			return "", err
 		}
 
-		resultBuilder.WriteString(acc.label + "\n")
+		resultBuilder.WriteString(":bank: " + acc.label + "\n")
 		resultBuilder.WriteString(lineSeparator)
 
-		resultBuilder.WriteString("Total: " + fmt.Sprintf("%.1f", totalCrossUnPnl) + "\n")
+		sign := ""
+		if totalCrossUnPnl > 0 {
+			sign = "+"
+		}
+		resultBuilder.WriteString("[Profit]: " + sign + fmt.Sprintf("%.1f", totalCrossUnPnl) + "\n")
+
+		if totalInitialMargin == 0 {
+			resultBuilder.WriteString("[ROI]: Undefined (Initial margin is 0)\n")
+		} else {
+			roi := (totalCrossUnPnl / totalInitialMargin) * 100
+
+			sign := ""
+			if roi > 0 {
+				sign = "+"
+			}
+			resultBuilder.WriteString("[ROI]: " + sign + fmt.Sprintf("%.1f", roi) + "%\n")
+		}
+
+		resultBuilder.WriteString("[Available]: " + fmt.Sprintf("%.1f", availableBalance) + "\n")
+		resultBuilder.WriteString(lineSeparator)
 
 		for _, position := range positions {
 			amt, err := strconv.ParseFloat(position.PositionAmt, 64)
@@ -235,7 +255,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 	return resultBuilder.String(), nil
 }
 
-func fetchPositions(apiKey string, secretKey string) ([]Position, float64, error) {
+func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float64, float64, error) {
 	url := baseURL + "/fapi/v2/account"
 
 	timestamp := fmt.Sprintf("%d", time.Now().Unix()*1000)
@@ -248,44 +268,58 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, error
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		log.Printf("Error creating request: %v", err)
-		return nil, 0, fmt.Errorf("could not create request: %v", err)
+		return nil, 0, 0, 0, fmt.Errorf("could not create request: %v", err)
 	}
 	req.Header.Add("X-MBX-APIKEY", apiKey)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("Error executing request: %v", err)
-		return nil, 0, fmt.Errorf("request failed: %v", err)
+		return nil, 0, 0, 0, fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Error reading response body: %v", err)
-		return nil, 0, fmt.Errorf("failed to read response body: %v", err)
+		return nil, 0, 0, 0, fmt.Errorf("failed to read response body: %v", err)
 	}
 
 	var responseData struct {
-		TotalCrossUnPnl string     `json:"totalCrossUnPnl"`
-		Positions       []Position `json:"positions"`
+		TotalCrossUnPnl    string     `json:"totalCrossUnPnl"`
+		AvailableBalance   string     `json:"availableBalance"`
+		TotalInitialMargin string     `json:"totalInitialMargin"`
+		Positions          []Position `json:"positions"`
 	}
 
 	if err := json.Unmarshal(body, &responseData); err != nil {
-		log.Printf("Error unmarshalling response body: %v", err) // It's good to log the specific error.
-		return nil, 0, err
+		log.Printf("Error unmarshalling response body: %v", err)
+		return nil, 0, 0, 0, err
 	}
 
 	totalCrossUnPnl, err := strconv.ParseFloat(responseData.TotalCrossUnPnl, 64)
 	if err != nil {
 		log.Printf("Error converting totalCrossUnPnl to float: %v", err)
-		return nil, 0, fmt.Errorf("failed to convert totalCrossUnPnl: %v", err)
+		return nil, 0, 0, 0, fmt.Errorf("failed to convert totalCrossUnPnl: %v", err)
 	}
 
-	return responseData.Positions, totalCrossUnPnl, nil
+	availableBalance, err := strconv.ParseFloat(responseData.AvailableBalance, 64)
+	if err != nil {
+		log.Printf("Error converting availableBalance to float: %v", err)
+		return nil, 0, 0, 0, fmt.Errorf("failed to convert availableBalance: %v", err)
+	}
+
+	totalInitialMargin, err := strconv.ParseFloat(responseData.TotalInitialMargin, 64)
+	if err != nil {
+		log.Printf("Error converting totalInitialMargin to float: %v", err)
+		return nil, 0, 0, 0, fmt.Errorf("failed to convert totalInitialMargin: %v", err)
+	}
+
+	return responseData.Positions, totalCrossUnPnl, availableBalance, totalInitialMargin, nil
 }
 
 func positionExistsForSymbol(apiKey, secretKey, targetSymbol string) (bool, error) {
-	positions, _, err := fetchPositions(apiKey, secretKey)
+	positions, _, _, _, err := fetchPositions(apiKey, secretKey)
 	if err != nil {
 		return false, err
 	}
@@ -310,7 +344,7 @@ func getROIForSymbol(apiKey, secretKey, targetSymbol string) (float64, error) {
 		return 0, fmt.Errorf("position for symbol %s not found", targetSymbol)
 	}
 
-	positions, _, err := fetchPositions(apiKey, secretKey)
+	positions, _, _, _, err := fetchPositions(apiKey, secretKey)
 	if err != nil {
 		return 0, err
 	}
