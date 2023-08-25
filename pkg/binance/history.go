@@ -56,6 +56,22 @@ func FetchAllHistory(cfg *config.Config, bucketName, fileName string) (string, e
 	return totalResults.String(), nil
 }
 
+func DBClear(bucketName, fileName string) error {
+	sess := session.Must(session.NewSession())
+	s3Client := s3.New(sess)
+
+	_, err := s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(fileName),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func initHistoryInS3(bucketName, fileName string) ([]BalanceHistory, error) {
 	sess := session.Must(session.NewSession())
 	s3Client := s3.New(sess)

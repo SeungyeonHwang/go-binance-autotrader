@@ -11,6 +11,7 @@ func SetUp(e *echo.Echo, h *handlers.Handler) {
 		swingAPI.GET("/balance", h.CheckBalance)
 		swingAPI.GET("/history", h.CheckHistory)
 		swingAPI.GET("/position", h.CheckPosition)
+		swingAPI.GET("/db-clear", h.DBClear)
 		swingAPI.POST("/webhook-order", h.WebhookOrder)
 	}
 }

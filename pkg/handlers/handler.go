@@ -41,6 +41,15 @@ func (h *Handler) CheckPosition(c echo.Context) error {
 	return c.String(http.StatusOK, val)
 }
 
+// db-clear
+func (h *Handler) DBClear(c echo.Context) error {
+	err := binance.DBClear(binance.BUCKET_NAME, binance.DB_NAME)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to clear db")
+	}
+	return c.String(http.StatusOK, "DB cleared")
+}
+
 // webhook trigger order
 // https://x8oktqy9c1.execute-api.ap-northeast-1.amazonaws.com/Prod/swing/webhook-order
 //
