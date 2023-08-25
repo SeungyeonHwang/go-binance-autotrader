@@ -23,6 +23,15 @@ func (h *Handler) CheckBalance(c echo.Context) error {
 	return c.String(http.StatusOK, val)
 }
 
+// balance
+func (h *Handler) CheckHistory(c echo.Context) error {
+	val, err := binance.FetchAllHistory(h.Config, binance.BUCKET_NAME, binance.DB_NAME)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, val)
+	}
+	return c.String(http.StatusOK, val)
+}
+
 // position
 func (h *Handler) CheckPosition(c echo.Context) error {
 	val, err := binance.FetchAllPositions(h.Config)

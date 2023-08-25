@@ -3,6 +3,31 @@
         {
             "type": "aws-sam",
             "request": "direct-invoke",
+            "name": "go-binance-autotrader:SwingHistoryFunction",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "SwingBalanceFunction"
+            },
+            "lambda": {
+                "payload": {},
+                "environmentVariables": {}
+            },
+            "api": {
+                "path": "/swing/history",
+                "httpMethod": "get",
+                "payload": {
+                    "json": {}
+                }
+            },
+            "aws": {
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
             "name": "API go-binance-autotrader:SwingWebHookOrderFunction",
             "invokeTarget": {
                 "target": "api",
@@ -16,7 +41,7 @@
                     "json": {}
                 }
             },
-                "aws": {
+            "aws": {
                 "credentials": "profile:hwang_personal",
                 "region": "ap-northeast-1"
             }

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
@@ -10,6 +12,10 @@ type Config struct {
 	MasterSecretKey string
 	Sub1APIKey      string
 	Sub1SecretKey   string
+	Sub2APIKey      string
+	Sub2SecretKey   string
+	Sub3APIKey      string
+	Sub3SecretKey   string
 }
 
 type SSMConfigLoader struct {
@@ -36,26 +42,36 @@ func LoadConfigurationFromSSM(ssmClient *ssm.SSM) (*Config, error) {
 
 func loadConfigFromSSM(loader SSMConfigLoader) (*Config, error) {
 	config := &Config{}
+	accounts := []string{"master", "sub1", "sub2", "sub3"}
 
-	var err error
-	config.MasterAPIKey, err = loader.GetParameter("/binance/master/api_key")
-	if err != nil {
-		return nil, err
-	}
+	for _, account := range accounts {
+		apiKeyName := fmt.Sprintf("/binance/%s/api_key", account)
+		secretKeyName := fmt.Sprintf("/binance/%s/secret_key", account)
 
-	config.MasterSecretKey, err = loader.GetParameter("/binance/master/secret_key")
-	if err != nil {
-		return nil, err
-	}
+		apiKey, err := loader.GetParameter(apiKeyName)
+		if err != nil {
+			return nil, err
+		}
 
-	config.Sub1APIKey, err = loader.GetParameter("/binance/sub1/api_key")
-	if err != nil {
-		return nil, err
-	}
+		secretKey, err := loader.GetParameter(secretKeyName)
+		if err != nil {
+			return nil, err
+		}
 
-	config.Sub1SecretKey, err = loader.GetParameter("/binance/sub1/secret_key")
-	if err != nil {
-		return nil, err
+		switch account {
+		case "master":
+			config.MasterAPIKey = apiKey
+			config.MasterSecretKey = secretKey
+		case "sub1":
+			config.Sub1APIKey = apiKey
+			config.Sub1SecretKey = secretKey
+		case "sub2":
+			config.Sub2APIKey = apiKey
+			config.Sub2SecretKey = secretKey
+		case "sub3":
+			config.Sub3APIKey = apiKey
+			config.Sub3SecretKey = secretKey
+		}
 	}
 
 	return config, nil

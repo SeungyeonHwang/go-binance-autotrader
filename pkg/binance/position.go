@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type Position struct {
+	Symbol           string `json:"symbol"`
+	InitialMargin    string `json:"initialMargin"`
+	UnrealizedProfit string `json:"unrealizedProfit"`
+	PositionAmt      string `json:"positionAmt"`
+}
+
 func setPositionSideMode(apiKey, secretKey string, hedgeMode bool) error {
 	endpoint := "/fapi/v1/positionSide/dual"
 	params := url.Values{}

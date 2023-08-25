@@ -11,6 +11,13 @@ Globals:
     ReservedConcurrentExecutions: 5
 
 Resources:
+  AssetBalanceBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: asset-balance-bucket
+      VersioningConfiguration:
+        Status: Enabled
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -42,6 +49,19 @@ Resources:
                   - ec2:DeleteNetworkInterface
                 Resource: '*'
 
+        - PolicyName: S3AssetBalancePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${AssetBalanceBucket}
+                  - !Sub arn:aws:s3:::${AssetBalanceBucket}/*
+
   SwingApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -58,6 +78,13 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingBalanceFunction.Arn}/invocations
+          /swing/history:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingHistoryFunction.Arn}/invocations
           /swing/position:
             get:
               x-amazon-apigateway-integration:
@@ -85,6 +112,20 @@ Resources:
           Type: Api
           Properties:
             Path: /swing/balance
+            Method: get
+
+  SwingHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cmd/swing
+      Handler: main.go
+      Runtime: go1.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        SwingBalance:
+          Type: Api
+          Properties:
+            Path: /swing/history
             Method: get
 
   SwingPositionFunction:

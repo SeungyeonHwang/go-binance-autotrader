@@ -14,44 +14,24 @@ import (
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
 )
 
-type Position struct {
-	Symbol           string `json:"symbol"`
-	InitialMargin    string `json:"initialMargin"`
-	UnrealizedProfit string `json:"unrealizedProfit"`
-	PositionAmt      string `json:"positionAmt"`
-}
-
 func FetchAllBalances(config *config.Config) (string, error) {
-	accounts := []struct {
-		accountType string
-		email       string
-		label       string
-	}{
-		{MASTER_ACCOUNT, "", "Master"},
-		{SUB1_ACCOUNT, SUB1_EMAIL, "Sub1"},
-		// {MASTER_ACCOUNT, SUB2_EMAIL, "Sub2"},
-		// {MASTER_ACCOUNT, SUB3_EMAIL, "Sub3"},
-	}
-
 	var resultBuilder strings.Builder
 
-	for _, acc := range accounts {
-		balance, err := getFuturesBalance(acc.accountType, config, acc.email)
+	for _, acc := range Accounts {
+		balance, err := GetFuturesBalance(acc.AccountType, config, acc.Email)
 		if err != nil {
 			return "", err
 		}
 
-		resultBuilder.WriteString(":bank: " + acc.label + "\n")
+		resultBuilder.WriteString(":bank: " + acc.Label + "\n")
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 
-		if acc.label == "Sub1" {
-			reverseUnitPrice := int(float64(balance) * 0.05 * 15)
-			trendUnitPrice := int(float64(balance) * 0.15 * 15)
-			resultBuilder.WriteString(":clock1: Time: 1H\n")
-			resultBuilder.WriteString(":hammer_and_pick: Method: 농부매매\n")
-			resultBuilder.WriteString(":rocket: Leverage: X15\n")
-			resultBuilder.WriteString(":dollar: Reverse Unit Price: $" + fmt.Sprintf("%d", reverseUnitPrice) + "\n")
-			resultBuilder.WriteString(":dollar: Trend Unit Price: $" + fmt.Sprintf("%d", trendUnitPrice) + "\n")
+		if info, ok := SubInfos[acc.Label]; ok {
+			unitPrice := int(float64(balance) * info.Amount * float64(info.Leverage))
+			resultBuilder.WriteString(":clock1: Time: " + info.Time + "\n")
+			resultBuilder.WriteString(":hammer_and_pick: Method: " + info.Method + "\n")
+			resultBuilder.WriteString(":rocket: Leverage: x" + strconv.Itoa(info.Leverage) + "\n")
+			resultBuilder.WriteString(":dollar: Unit Price: $" + fmt.Sprintf("%d", unitPrice) + "\n")
 		}
 
 		resultBuilder.WriteString(":moneybag: Balance: $" + fmt.Sprintf("%d", balance) + "\n")
@@ -62,7 +42,7 @@ func FetchAllBalances(config *config.Config) (string, error) {
 	return resultBuilder.String(), nil
 }
 
-func getFuturesBalance(account string, config *config.Config, subAccountEmail ...string) (int, error) {
+func GetFuturesBalance(account string, config *config.Config, subAccountEmail ...string) (int, error) {
 	if account == MASTER_ACCOUNT {
 		return fetchBalance(config.MasterAPIKey, config.MasterSecretKey)
 	} else {
@@ -173,30 +153,20 @@ func FetchAllPositions(config *config.Config) (string, error) {
 	accounts := []struct {
 		accountType string
 		label       string
+		apiKey      string
+		secretKey   string
 	}{
-		// {MASTER_ACCOUNT, "Master"},
-		{SUB1_ACCOUNT, "Sub1"},
-		// {MASTER_ACCOUNT, "Sub2"},
-		// {MASTER_ACCOUNT, "Sub3"},
+		{MASTER_ACCOUNT, "Master", config.MasterAPIKey, config.MasterSecretKey},
+		{SUB1_ACCOUNT, "Sub1", config.Sub1APIKey, config.Sub1SecretKey},
+		{SUB2_ACCOUNT, "Sub2", config.Sub2APIKey, config.Sub2SecretKey},
+		{SUB3_ACCOUNT, "Sub3", config.Sub3APIKey, config.Sub3SecretKey},
 	}
 
 	var resultBuilder strings.Builder
 	lineSeparator := strings.Repeat("-", 40) + "\n"
 
 	for _, acc := range accounts {
-		var apiKey, secretKey string
-		switch acc.accountType {
-		case MASTER_ACCOUNT:
-			apiKey = config.MasterAPIKey
-			secretKey = config.MasterSecretKey
-		case SUB1_ACCOUNT:
-			apiKey = config.Sub1APIKey
-			secretKey = config.Sub1SecretKey
-		default:
-			return "", fmt.Errorf("unknown account type: %s", acc.accountType)
-		}
-
-		positions, totalCrossUnPnl, availableBalance, totalInitialMargin, err := fetchPositions(apiKey, secretKey)
+		positions, totalCrossUnPnl, availableBalance, totalInitialMargin, err := fetchPositions(acc.apiKey, acc.secretKey)
 		if err != nil {
 			return "", err
 		}
@@ -211,7 +181,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 		resultBuilder.WriteString("[Profit]: " + sign + fmt.Sprintf("%.1f", totalCrossUnPnl) + "\n")
 
 		if totalInitialMargin == 0 {
-			resultBuilder.WriteString("[ROI]: Undefined (Initial margin is 0)\n")
+			resultBuilder.WriteString("[ROI]: 0\n")
 		} else {
 			roi := (totalCrossUnPnl / totalInitialMargin) * 100
 
