@@ -24,7 +24,11 @@ const (
 )
 
 const (
-	baseURL = "https://fapi.binance.com"
+	baseURL      = "https://fapi.binance.com"
+	SLACK_SUB1   = "https://hooks.slack.com/services/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"
+	SLACK_SUB2   = "https://hooks.slack.com/services/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"
+	SLACK_SUB3   = "https://hooks.slack.com/services/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"
+	SLACK_MASTER = "https://hooks.slack.com/services/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"
 )
 
 const (

@@ -1,5 +1,10 @@
 package binance
 
+type AccountConfig struct {
+	APIKey    string
+	SecretKey string
+}
+
 type Account struct {
 	AccountType string
 	Email       string

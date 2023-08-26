@@ -13,21 +13,31 @@ import (
 )
 
 func NewFuturesClient(config *config.Config, account string) (*futures.Client, error) {
-	log.Printf("Initializing a new Futures client for account: %s", account)
+	accountMap := map[string]AccountConfig{
+		MASTER_ACCOUNT: {
+			APIKey:    config.MasterAPIKey,
+			SecretKey: config.MasterSecretKey,
+		},
+		SUB1_ACCOUNT: {
+			APIKey:    config.Sub1APIKey,
+			SecretKey: config.Sub1SecretKey,
+		},
+		SUB2_ACCOUNT: {
+			APIKey:    config.Sub2APIKey,
+			SecretKey: config.Sub2SecretKey,
+		},
+		SUB3_ACCOUNT: {
+			APIKey:    config.Sub3APIKey,
+			SecretKey: config.Sub3SecretKey,
+		},
+	}
 
-	var apiKey, secretKey string
-	switch strings.ToLower(account) {
-	case MASTER_ACCOUNT:
-		apiKey = config.MasterAPIKey
-		secretKey = config.MasterSecretKey
-	case SUB1_ACCOUNT:
-		apiKey = config.Sub1APIKey
-		secretKey = config.Sub1SecretKey
-	default:
+	acctConfig, found := accountMap[strings.ToLower(account)]
+	if !found {
 		return nil, fmt.Errorf("account %s not found in the configuration", account)
 	}
 
-	return binance.NewFuturesClient(apiKey, secretKey), nil
+	return binance.NewFuturesClient(acctConfig.APIKey, acctConfig.SecretKey), nil
 }
 
 func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSide string, leverage, amountInUSDT int, entry bool) error {
@@ -129,7 +139,19 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 	msg += "Leverage: " + fmt.Sprintf("x%d", leverage) + "\n"
 	msg += "Order Amount: " + fmt.Sprintf("%d USDT", amountInUSDT)
 
-	err = SendSlackNotification("https://hooks.slack.com/services/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", msg)
+	slackURLMap := map[string]string{
+		MASTER_ACCOUNT: SLACK_MASTER,
+		SUB1_ACCOUNT:   SLACK_SUB1,
+		SUB2_ACCOUNT:   SLACK_SUB2,
+		SUB3_ACCOUNT:   SLACK_SUB3,
+	}
+
+	slackURL, found := slackURLMap[strings.ToLower(account)]
+	if !found {
+		return fmt.Errorf("invalid account provided: %s", account)
+	}
+
+	err = SendSlackNotification(slackURL, msg)
 	if err != nil {
 		log.Printf("Failed to send Slack notification: %s", err)
 	}
