@@ -216,7 +216,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 			if profit > 0 {
 				profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
 			}
-			resultBuilder.WriteString(position.Symbol + ": " + profitStr + "\n")
+			resultBuilder.WriteString(":coin: " + position.Symbol + ": " + profitStr + "\n")
 		}
 
 		resultBuilder.WriteString(lineSeparator)
