@@ -127,7 +127,7 @@ func initHistoryInS3(bucketName, fileName string) ([]BalanceHistory, error) {
 }
 
 func upsertTodayBalance(accountLabel string, balance int, bucketName, fileName string) ([]BalanceHistory, error) {
-	today := time.Now().Truncate(24 * time.Hour)
+	today := time.Now().Add(9 * time.Hour).Truncate(24 * time.Hour)
 
 	sess := session.Must(session.NewSession())
 	s3Client := s3.New(sess)
