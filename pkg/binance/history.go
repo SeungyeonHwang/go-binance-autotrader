@@ -42,10 +42,10 @@ func FetchAllHistory(cfg *config.Config, bucketName, fileName string) (string, e
 		histories := filterHistoriesForAccount(updatedHistories, acc.Label)
 		monthHistories := filterHistoriesForThisMonth(histories)
 
-		if len(monthHistories) < 2 {
-			return "", fmt.Errorf("insufficient data for account: %s", acc.Label)
+		initialBalance := 0.0
+		if len(monthHistories) > 0 {
+			initialBalance = monthHistories[0].Balance
 		}
-		initialBalance := monthHistories[0].Balance
 		totalDelta := (float64(balance) - initialBalance) / initialBalance * 100
 
 		totalResults.WriteString(fmt.Sprintf(":bank: %s [%d (%+.2f%%)]\n", acc.Label, int(balance), totalDelta))
@@ -59,7 +59,7 @@ func FetchAllHistory(cfg *config.Config, bucketName, fileName string) (string, e
 				roundedDelta := int(math.Round(deltaValue))
 				delta = fmt.Sprintf("(%+d%%)", roundedDelta)
 			}
-			totalResults.WriteString(fmt.Sprintf("%d.%d: %d %s\n", history.Date.Month(), history.Date.Day(), int(history.Balance), delta))
+			totalResults.WriteString(fmt.Sprintf("%02d.%02d: %d %s\n", history.Date.Month(), history.Date.Day(), int(history.Balance), delta))
 		}
 
 		totalResults.WriteString(strings.Repeat("-", 40) + "\n")
