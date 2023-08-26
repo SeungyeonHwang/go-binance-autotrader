@@ -20,7 +20,7 @@ const (
 	SUB3_TIME     = "4H(+15min)"
 	SUB3_LEVERAGE = 5
 	SUB3_AMOUNT   = 0.1
-	SUB3_METHOD   = "SWING2"
+	SUB3_METHOD   = "SWING3"
 )
 
 const (
