@@ -93,9 +93,9 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingPositionFunction.Arn}/invocations
           /swing/db-clear:
-            get:
+            post:
               x-amazon-apigateway-integration:
-                httpMethod: GET
+                httpMethod: POST
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingDBClearFunction.Arn}/invocations
@@ -161,7 +161,7 @@ Resources:
           Type: Api
           Properties:
             Path: /swing/db-clear
-            Method: get
+            Method: post
 
   SwingWebHookOrderFunction:
     Type: AWS::Serverless::Function
