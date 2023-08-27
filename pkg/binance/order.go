@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
@@ -186,4 +187,74 @@ func roiValidation(apiKey, secretKey, targetSymbol string, leverage, amountInUSD
 	}
 
 	return 0, err
+}
+
+func PlaceStopLossTakeProfitALLOrder(config *config.Config, account, symbol, position string, tp, sl float64) error {
+	symbol = ToUpper(symbol)
+	position = ToLower(position)
+
+	client, err := NewFuturesClient(config, account)
+	if err != nil {
+		return err
+	}
+
+	openOrders, err := client.NewListOpenOrdersService().Symbol(symbol).Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error fetching open orders: %v", err)
+	}
+
+	for _, order := range openOrders {
+		if order.ClosePosition {
+			_, err := client.NewCancelOrderService().Symbol(symbol).OrderID(order.OrderID).Do(context.Background())
+			if err != nil {
+				return fmt.Errorf("error canceling order %d: %v", order.OrderID, err)
+			} else {
+				log.Printf("Canceled order %d\n", order.OrderID)
+			}
+		}
+	}
+
+	tpStr := strconv.FormatFloat(tp, 'f', -1, 64)
+	slStr := strconv.FormatFloat(sl, 'f', -1, 64)
+
+	var positionSide futures.PositionSideType
+	var orderSide futures.SideType
+
+	if position == "long" {
+		positionSide = futures.PositionSideTypeLong
+		orderSide = futures.SideTypeSell
+	} else if position == "short" {
+		positionSide = futures.PositionSideTypeShort
+		orderSide = futures.SideTypeBuy
+	} else {
+		return fmt.Errorf("invalid position: %s", position)
+	}
+
+	_, err = client.NewCreateOrderService().
+		Symbol(symbol).
+		Side(orderSide).
+		Type(futures.OrderTypeStopMarket).
+		PositionSide(positionSide).
+		Quantity("0.0").
+		StopPrice(slStr).
+		ClosePosition(true).
+		Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error creating stop market order: %v", err)
+	}
+
+	_, err = client.NewCreateOrderService().
+		Symbol(symbol).
+		Side(orderSide).
+		Type(futures.OrderTypeTakeProfitMarket).
+		PositionSide(positionSide).
+		Quantity("0.0").
+		StopPrice(tpStr).
+		ClosePosition(true).
+		Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error creating take profit market order: %v", err)
+	}
+
+	return nil
 }
