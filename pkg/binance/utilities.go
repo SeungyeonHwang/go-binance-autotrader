@@ -19,7 +19,12 @@ func trimQuantity(quantity, stepSize float64) float64 {
 	return trimmedQuantity
 }
 
-func getStepSizeForSymbol(client *futures.Client, symbol string) (float64, error) {
+func trimPrice(price, tickSize float64) float64 {
+	trimmedPrice := math.Round(price/tickSize) * tickSize
+	return trimmedPrice
+}
+
+func GetStepSizeForSymbol(client *futures.Client, symbol string) (float64, error) {
 	info, err := client.NewExchangeInfoService().Do(context.Background())
 	if err != nil {
 		return 0, err
@@ -34,6 +39,23 @@ func getStepSizeForSymbol(client *futures.Client, symbol string) (float64, error
 		}
 	}
 	return 0, fmt.Errorf("step size for symbol %s not found", symbol)
+}
+
+func GetTickSizeForSymbol(client *futures.Client, symbol string) (float64, error) {
+	info, err := client.NewExchangeInfoService().Do(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	for _, s := range info.Symbols {
+		if s.Symbol == symbol {
+			for _, f := range s.Filters {
+				if f["filterType"] == "PRICE_FILTER" {
+					return strconv.ParseFloat(f["tickSize"].(string), 64)
+				}
+			}
+		}
+	}
+	return 0, fmt.Errorf("tick size for symbol %s not found", symbol)
 }
 
 func getCurrentFuturesPrice(client *futures.Client, symbol string) (float64, error) {

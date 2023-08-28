@@ -113,6 +113,13 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingStopLossTakeProfitALLFunction.Arn}/invocations
+          /swing/sltp-partial:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingStopLossTakeProfitPartialFunction.Arn}/invocations
 
   SwingBalanceFunction:
     Type: AWS::Serverless::Function
@@ -196,4 +203,18 @@ Resources:
           Type: Api
           Properties:
             Path: /swing/sltp-all
+            Method: post
+
+  SwingStopLossTakeProfitPartialFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cmd/swing
+      Handler: main.go
+      Runtime: go1.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        SwingWebHookOrder:
+          Type: Api
+          Properties:
+            Path: /swing/sltp-partial
             Method: post

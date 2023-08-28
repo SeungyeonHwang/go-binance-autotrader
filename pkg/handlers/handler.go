@@ -66,16 +66,40 @@ func (h *Handler) WebhookOrder(c echo.Context) error {
 }
 
 func (h *Handler) SetStopLossTakeProfitALL(c echo.Context) error {
-	orderReq := new(StopLossTakeProfitPayload)
+	orderReq := new(AllStopLossTakeProfitPayload)
 	if err := c.Bind(orderReq); err != nil {
 		return c.String(http.StatusBadRequest, "Failed to parse request body")
 	}
 
-	err := binance.PlaceStopLossTakeProfitALLOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.TP, orderReq.SL)
+	err := binance.PlaceALLStopLossTakeProfitOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.TP, orderReq.SL)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to set stop loss and take profit: %s", err.Error()))
 	}
 	return c.String(http.StatusOK, "SL/TP(ALL) set successfully!")
+}
+
+func (h *Handler) SetStopLossTakeProfitPartial(c echo.Context) error {
+	orderReq := new(PartialTakeProfitPayload)
+	if err := c.Bind(orderReq); err != nil {
+		return c.String(http.StatusBadRequest, "Failed to parse request body")
+	}
+
+	details := make(map[string]interface{})
+	details["account"] = orderReq.Account
+	details["symbol"] = orderReq.Symbol
+	details["positionSide"] = orderReq.PositionSide
+	if orderReq.TP != nil {
+		tpMap := make(map[string]interface{})
+		tpMap["price"] = orderReq.TP.Price
+		tpMap["quantity"] = orderReq.TP.Quantity
+		details["tp"] = tpMap
+	}
+
+	err := binance.PlacePartialTakeProfitOrder(h.Config, details)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to set partial take profit: %s", err.Error()))
+	}
+	return c.String(http.StatusOK, "TP(Partial) set successfully!")
 }
 
 // db-clear

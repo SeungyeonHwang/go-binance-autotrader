@@ -1,5 +1,10 @@
 package handlers
 
+type PriceQuantity struct {
+	Price    float64 `json:"price"`
+	Quantity float64 `json:"quantity"`
+}
+
 type TradingViewPayload struct {
 	Account      string `json:"account"`
 	Symbol       string `json:"symbol"`
@@ -9,10 +14,17 @@ type TradingViewPayload struct {
 	Entry        bool   `json:"entry,omitempty"`
 }
 
-type StopLossTakeProfitPayload struct {
+type AllStopLossTakeProfitPayload struct {
 	Account      string  `json:"account"`
 	Symbol       string  `json:"symbol"`
 	PositionSide string  `json:"positionSide"`
 	TP           float64 `json:"tp"`
 	SL           float64 `json:"sl"`
+}
+
+type PartialTakeProfitPayload struct {
+	Account      string         `json:"account"`
+	Symbol       string         `json:"symbol"`
+	PositionSide string         `json:"positionSide"`
+	TP           *PriceQuantity `json:"tp,omitempty"`
 }

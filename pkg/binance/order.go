@@ -95,7 +95,7 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 
 	quantity := float64(amountInUSDT) / price
 
-	stepSize, err := getStepSizeForSymbol(client, symbol)
+	stepSize, err := GetStepSizeForSymbol(client, symbol)
 	if err != nil {
 		log.Printf("Failed to fetch step size: %s", err)
 		return err
@@ -189,8 +189,8 @@ func roiValidation(apiKey, secretKey, targetSymbol string, leverage, amountInUSD
 	return 0, err
 }
 
-func PlaceStopLossTakeProfitALLOrder(config *config.Config, account, symbol, position string, tp, sl float64) error {
-	symbol = ToUpper(symbol)
+func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol, position string, tp, sl float64) error {
+	symbol = FormatSymbol(symbol)
 	position = ToLower(position)
 
 	client, err := NewFuturesClient(config, account)
@@ -256,5 +256,90 @@ func PlaceStopLossTakeProfitALLOrder(config *config.Config, account, symbol, pos
 		return fmt.Errorf("error creating take profit market order: %v", err)
 	}
 
+	return nil
+}
+
+func PlacePartialTakeProfitOrder(config *config.Config, details map[string]interface{}) error {
+	account := details["account"].(string)
+	symbol := FormatSymbol(details["symbol"].(string))
+	positionSide := details["positionSide"].(string)
+
+	client, err := NewFuturesClient(config, account)
+	if err != nil {
+		return err
+	}
+
+	currentPosition, err := client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error fetching current position: %v", err)
+	}
+
+	var matchingPosition *futures.AccountPosition
+	for _, pos := range currentPosition.Positions {
+		if pos.Symbol == symbol {
+			matchingPosition = pos
+			break
+		}
+	}
+
+	if matchingPosition == nil {
+		return fmt.Errorf("no matching position found for symbol: %s", symbol)
+	}
+
+	currentQtyStr := matchingPosition.PositionAmt
+	currentQty, err := strconv.ParseFloat(currentQtyStr, 64)
+	if err != nil {
+		return err
+	}
+
+	var tpPrice float64
+	var tpQtyPercent float64
+	var tpQty string
+
+	if tpDetails, ok := details["tp"].(map[string]interface{}); ok {
+		tpPrice = tpDetails["price"].(float64)
+		tickSize, err := GetTickSizeForSymbol(client, symbol)
+		if err != nil {
+			return err
+		}
+		tpPrice = trimPrice(tpPrice, tickSize)
+
+		tpQtyPercent = tpDetails["quantity"].(float64)
+		stepSize, err := GetStepSizeForSymbol(client, symbol)
+		if err != nil {
+			log.Printf("Failed to fetch step size: %s", err)
+			return err
+		}
+		adjustedTpQty := trimQuantity(currentQty*tpQtyPercent/100, stepSize)
+		tpQty = strconv.FormatFloat(adjustedTpQty, 'f', -1, 64)
+	}
+
+	var orderSide futures.SideType
+	var positionSideType futures.PositionSideType
+	if positionSide == "long" {
+		orderSide = futures.SideTypeSell
+		positionSideType = futures.PositionSideTypeLong
+	} else if positionSide == "short" {
+		orderSide = futures.SideTypeBuy
+		positionSideType = futures.PositionSideTypeShort
+	} else {
+		return fmt.Errorf("invalid positionSide: %s", positionSide)
+	}
+
+	if tpQty != "" && tpPrice != 0 {
+		tpStr := strconv.FormatFloat(tpPrice, 'f', -1, 64)
+		_, err = client.NewCreateOrderService().
+			Symbol(symbol).
+			Side(orderSide).
+			PositionSide(positionSideType).
+			Type(futures.OrderTypeLimit).
+			TimeInForce(futures.TimeInForceTypeGTC).
+			Quantity(tpQty).
+			Price(tpStr).
+			Do(context.Background())
+		if err != nil {
+			return fmt.Errorf("error creating take profit limit order: %v", err)
+		}
+	}
 	return nil
 }
