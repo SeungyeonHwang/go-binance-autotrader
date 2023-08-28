@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
+	"github.com/adshao/go-binance/v2"
 )
 
 func FetchAllBalances(config *config.Config) (string, error) {
@@ -227,68 +229,44 @@ func FetchAllPositions(config *config.Config) (string, error) {
 }
 
 func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float64, float64, error) {
-	url := baseURL + "/fapi/v2/account"
-
-	timestamp := fmt.Sprintf("%d", time.Now().Unix()*1000)
-	queryString := "timestamp=" + timestamp
-	signature := createHmac(queryString, secretKey)
-
-	fullURL := url + "?" + queryString + "&signature=" + signature
-	log.Println("Requesting:", fullURL)
-
-	req, err := http.NewRequest("GET", fullURL, nil)
-	if err != nil {
-		log.Printf("Error creating request: %v", err)
-		return nil, 0, 0, 0, fmt.Errorf("could not create request: %v", err)
-	}
-	req.Header.Add("X-MBX-APIKEY", apiKey)
-
-	resp, err := http.DefaultClient.Do(req)
+	client := binance.NewFuturesClient(apiKey, secretKey)
+	account, err := client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		log.Printf("Error executing request: %v", err)
 		return nil, 0, 0, 0, fmt.Errorf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		return nil, 0, 0, 0, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var responseData struct {
-		TotalCrossUnPnl    string     `json:"totalCrossUnPnl"`
-		AvailableBalance   string     `json:"availableBalance"`
-		TotalInitialMargin string     `json:"totalInitialMargin"`
-		Positions          []Position `json:"positions"`
-	}
-
-	if err := json.Unmarshal(body, &responseData); err != nil {
-		log.Printf("Error unmarshalling response body: %v", err)
-		return nil, 0, 0, 0, err
-	}
-
-	totalCrossUnPnl, err := strconv.ParseFloat(responseData.TotalCrossUnPnl, 64)
+	totalCrossUnPnl, err := strconv.ParseFloat(account.TotalCrossUnPnl, 64)
 	if err != nil {
 		log.Printf("Error converting totalCrossUnPnl to float: %v", err)
 		return nil, 0, 0, 0, fmt.Errorf("failed to convert totalCrossUnPnl: %v", err)
 	}
 
-	availableBalance, err := strconv.ParseFloat(responseData.AvailableBalance, 64)
+	availableBalance, err := strconv.ParseFloat(account.AvailableBalance, 64)
 	if err != nil {
 		log.Printf("Error converting availableBalance to float: %v", err)
 		return nil, 0, 0, 0, fmt.Errorf("failed to convert availableBalance: %v", err)
 	}
 
-	totalInitialMargin, err := strconv.ParseFloat(responseData.TotalInitialMargin, 64)
+	totalInitialMargin, err := strconv.ParseFloat(account.TotalInitialMargin, 64)
 	if err != nil {
 		log.Printf("Error converting totalInitialMargin to float: %v", err)
 		return nil, 0, 0, 0, fmt.Errorf("failed to convert totalInitialMargin: %v", err)
 	}
 
-	sort.Slice(responseData.Positions, func(i, j int) bool {
-		profitI, errI := strconv.ParseFloat(responseData.Positions[i].UnrealizedProfit, 64)
-		profitJ, errJ := strconv.ParseFloat(responseData.Positions[j].UnrealizedProfit, 64)
+	positions := make([]Position, len(account.Positions))
+	for i, p := range account.Positions {
+		positions[i] = Position{
+			Symbol:           p.Symbol,
+			InitialMargin:    p.InitialMargin,
+			UnrealizedProfit: p.UnrealizedProfit,
+			PositionAmt:      p.PositionAmt,
+		}
+	}
+
+	sort.Slice(positions, func(i, j int) bool {
+		profitI, errI := strconv.ParseFloat(positions[i].UnrealizedProfit, 64)
+		profitJ, errJ := strconv.ParseFloat(positions[j].UnrealizedProfit, 64)
 
 		if errI != nil || errJ != nil {
 			return false
@@ -296,7 +274,7 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float
 		return profitI > profitJ
 	})
 
-	return responseData.Positions, totalCrossUnPnl, availableBalance, totalInitialMargin, nil
+	return positions, totalCrossUnPnl, availableBalance, totalInitialMargin, nil
 }
 
 func positionExistsForSymbol(apiKey, secretKey, targetSymbol string) (bool, error) {

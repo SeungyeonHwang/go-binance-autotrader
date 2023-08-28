@@ -3,6 +3,55 @@
         {
             "type": "aws-sam",
             "request": "direct-invoke",
+            "name": "go-binance-autotrader:SwingPositionFunction",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "SwingPositionFunction"
+            },
+                "api": {
+                "path": "/swing/position",
+                "httpMethod": "get",
+                "payload": {
+                "json": {}
+                }
+            },
+            "aws": {
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
+            "name": "go-binance-autotrader:SwingWebHookOrderFunction",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "SwingWebHookOrderFunction"
+            },
+            "api": {
+                "path": "/swing/webhook-order",
+                "httpMethod": "post",
+                "payload": {
+                    "json": {
+                        "account": "sub2",
+                        "symbol": "ldousdt",
+                        "positionSide": "long",
+                        "leverage": 5,
+                        "amount": 10,
+                        "entry": false
+                    }
+                }
+            },
+            "aws": {
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
             "name": "go-binance-autotrader:SwingHistoryFunction",
             "invokeTarget": {
                 "target": "api",
