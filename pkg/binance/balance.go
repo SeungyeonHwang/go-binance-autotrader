@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -254,25 +253,23 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float
 		return nil, 0, 0, 0, fmt.Errorf("failed to convert totalInitialMargin: %v", err)
 	}
 
-	positions := make([]Position, len(account.Positions))
-	for i, p := range account.Positions {
-		positions[i] = Position{
-			Symbol:           p.Symbol,
-			InitialMargin:    p.InitialMargin,
-			UnrealizedProfit: p.UnrealizedProfit,
-			PositionAmt:      p.PositionAmt,
+	var positions []Position
+	for _, p := range account.Positions {
+		positionAmt, err := strconv.ParseFloat(p.PositionAmt, 64)
+		if err != nil {
+			log.Printf("Error converting positionAmt to float for symbol %s: %v", p.Symbol, err)
+			continue
+		}
+
+		if positionAmt != 0 {
+			positions = append(positions, Position{
+				Symbol:           p.Symbol,
+				InitialMargin:    p.InitialMargin,
+				UnrealizedProfit: p.UnrealizedProfit,
+				PositionAmt:      p.PositionAmt,
+			})
 		}
 	}
-
-	sort.Slice(positions, func(i, j int) bool {
-		profitI, errI := strconv.ParseFloat(positions[i].UnrealizedProfit, 64)
-		profitJ, errJ := strconv.ParseFloat(positions[j].UnrealizedProfit, 64)
-
-		if errI != nil || errJ != nil {
-			return false
-		}
-		return profitI > profitJ
-	})
 
 	return positions, totalCrossUnPnl, availableBalance, totalInitialMargin, nil
 }

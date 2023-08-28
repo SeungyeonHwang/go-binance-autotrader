@@ -35,13 +35,13 @@
                 "httpMethod": "post",
                 "payload": {
                     "json": {
-                        "account": "sub2",
-                        "symbol": "ldousdt",
-                        "positionSide": "long",
-                        "leverage": 5,
-                        "amount": 10,
-                        "entry": false
-                    }
+"account": "Sub1",
+"symbol": "SFPUSDT.P",
+"positionSide": "short",
+"leverage": 10,
+"amount": 200,
+"entry": false
+}
                 }
             },
             "aws": {
