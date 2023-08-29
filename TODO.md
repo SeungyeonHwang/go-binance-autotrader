@@ -1,8 +1,14 @@
-- Position에 Total Profit
-- partial 하기 전 // 3. clear open order (only limit)
 - Market Close
-- Market Close(All)
-- Trailing Stop
+  - All
+  - Partial
+  
+- Limit 
+  - 주문 하기전 clear open order (only limit)
+  - Short 도 되는지 확인
+
+- 함수 실행전 History 강제 하기
+
+
 
 ==================================================================================================================
 - Close all / 비중 close

@@ -163,14 +163,20 @@ func FetchAllPositions(config *config.Config) (string, error) {
 		{SUB3_ACCOUNT, "Sub3", config.Sub3APIKey, config.Sub3SecretKey},
 	}
 
+	var totalProfitAllAccounts float64
+	var totalInitialMarginAllAccounts float64
 	var resultBuilder strings.Builder
 	lineSeparator := strings.Repeat("-", 40) + "\n"
+	lineSeparatorDouble := strings.Repeat("=", 40) + "\n"
 
 	for _, acc := range accounts {
 		positions, totalCrossUnPnl, availableBalance, totalInitialMargin, err := fetchPositions(acc.apiKey, acc.secretKey)
 		if err != nil {
 			return "", err
 		}
+
+		totalProfitAllAccounts += totalCrossUnPnl
+		totalInitialMarginAllAccounts += totalInitialMargin
 
 		resultBuilder.WriteString(":bank: " + acc.label + "\n")
 		resultBuilder.WriteString(lineSeparator)
@@ -217,12 +223,26 @@ func FetchAllPositions(config *config.Config) (string, error) {
 			if profit > 0 {
 				profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
 			}
-			resultBuilder.WriteString(":coin: " + position.Symbol + ": " + profitStr + "\n")
+			entryPrice := position.EntryPrice
+			resultBuilder.WriteString(":coin: " + position.Symbol + ": " + profitStr + " [" + entryPrice + "]" + "\n")
 		}
-
 		resultBuilder.WriteString(lineSeparator)
 		resultBuilder.WriteString("\n")
 	}
+
+	resultBuilder.WriteString(lineSeparatorDouble)
+	resultBuilder.WriteString("[Total Profit]: " + fmt.Sprintf("%.1f", totalProfitAllAccounts) + "\n")
+	if totalInitialMarginAllAccounts == 0 {
+		resultBuilder.WriteString("[Total ROI]: 0\n")
+	} else {
+		totalROI := (totalProfitAllAccounts / totalInitialMarginAllAccounts) * 100
+		sign := ""
+		if totalROI > 0 {
+			sign = "+"
+		}
+		resultBuilder.WriteString("[Total ROI]: " + sign + fmt.Sprintf("%.1f", totalROI) + "%\n")
+	}
+	resultBuilder.WriteString(lineSeparatorDouble)
 
 	return resultBuilder.String(), nil
 }
@@ -267,6 +287,7 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float
 				InitialMargin:    p.InitialMargin,
 				UnrealizedProfit: p.UnrealizedProfit,
 				PositionAmt:      p.PositionAmt,
+				EntryPrice:       p.EntryPrice,
 			})
 		}
 	}

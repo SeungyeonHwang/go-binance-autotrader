@@ -11,6 +11,7 @@ type Position struct {
 	InitialMargin    string `json:"initialMargin"`
 	UnrealizedProfit string `json:"unrealizedProfit"`
 	PositionAmt      string `json:"positionAmt"`
+	EntryPrice       string `json:"entryPrice"`
 }
 
 func setPositionSideMode(apiKey, secretKey string, hedgeMode bool) error {

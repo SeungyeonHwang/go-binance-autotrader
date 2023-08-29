@@ -15,8 +15,9 @@ import (
 )
 
 func trimQuantity(quantity, stepSize float64) float64 {
-	trimmedQuantity := math.Round(quantity/stepSize) * stepSize
-	return trimmedQuantity
+	factor := math.Pow(10, float64(getPrecision(stepSize)))
+	rounded := math.Round(quantity*factor) / factor
+	return rounded
 }
 
 func trimPrice(price, tickSize float64) float64 {
@@ -112,4 +113,23 @@ func SendSlackNotification(webhookUrl, msg string) error {
 		return err
 	}
 	return nil
+}
+
+func getPrecision(value float64) int {
+	decimalStr := fmt.Sprintf("%.10f", value)
+	parts := strings.Split(decimalStr, ".")
+	if len(parts) != 2 {
+		return 0
+	}
+
+	decimalPart := parts[1]
+	precision := 0
+	for i := len(decimalPart) - 1; i >= 0; i-- {
+		if decimalPart[i] != '0' {
+			precision = i + 1
+			break
+		}
+	}
+
+	return precision
 }

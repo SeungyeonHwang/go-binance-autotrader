@@ -3,17 +3,47 @@
         {
             "type": "aws-sam",
             "request": "direct-invoke",
+            "name": "go-binance-autotrader:SwingStopLossTakeProfitPartialFunction",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "SwingStopLossTakeProfitPartialFunction"
+            },
+            "api": {
+                "path": "/swing/sltp-partial",
+                "httpMethod": "post",
+                "payload": {
+                    "json": {
+    "account": "master",
+    "symbol": "ethusdt",
+    "positionSide": "short",
+    "tp": {
+			"price": 1636.76,
+			"quantity": 50
+		}
+}
+	
+                },
+            },            
+            "aws": {
+            "credentials": "profile:hwang_personal",
+            "region": "ap-northeast-1"
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
             "name": "go-binance-autotrader:SwingPositionFunction",
             "invokeTarget": {
                 "target": "api",
                 "templatePath": "${workspaceFolder}/template.yaml",
                 "logicalId": "SwingPositionFunction"
             },
-                "api": {
+            "api": {
                 "path": "/swing/position",
                 "httpMethod": "get",
                 "payload": {
-                "json": {}
+                    "json": {}
                 }
             },
             "aws": {
@@ -35,13 +65,13 @@
                 "httpMethod": "post",
                 "payload": {
                     "json": {
-"account": "Sub1",
-"symbol": "SFPUSDT.P",
-"positionSide": "short",
-"leverage": 10,
-"amount": 200,
-"entry": false
-}
+                        "account": "Sub1",
+                        "symbol": "SFPUSDT.P",
+                        "positionSide": "short",
+                        "leverage": 10,
+                        "amount": 200,
+                        "entry": false
+                    }
                 }
             },
             "aws": {
