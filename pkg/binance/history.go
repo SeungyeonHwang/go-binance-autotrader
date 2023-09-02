@@ -28,11 +28,15 @@ func FetchAllHistory(cfg *config.Config, bucketName, fileName string) (string, e
 	}
 
 	var totalResults strings.Builder
+	totalInitialBalance := 0.0
+	totalCurrentBalance := 0.0
+
 	for _, acc := range Accounts {
 		balance, err := GetFuturesBalance(acc.AccountType, cfg, acc.Email)
 		if err != nil {
 			return "", err
 		}
+		totalCurrentBalance += float64(balance)
 
 		updatedHistories, err := upsertTodayBalance(acc.Label, balance, bucketName, fileName)
 		if err != nil {
@@ -46,9 +50,11 @@ func FetchAllHistory(cfg *config.Config, bucketName, fileName string) (string, e
 		if len(monthHistories) > 0 {
 			initialBalance = monthHistories[0].Balance
 		}
+		totalInitialBalance += initialBalance
+
 		totalDelta := (float64(balance) - initialBalance) / initialBalance * 100
 
-		totalResults.WriteString(fmt.Sprintf(":bank: %s [%d (%+.2f%%)]\n", acc.Label, int(balance), totalDelta))
+		totalResults.WriteString(fmt.Sprintf("%s [%d (%+.2f%%)]\n", acc.Label, int(balance), totalDelta))
 		totalResults.WriteString(strings.Repeat("-", 40) + "\n")
 
 		for i, history := range monthHistories {
@@ -56,15 +62,21 @@ func FetchAllHistory(cfg *config.Config, bucketName, fileName string) (string, e
 			if i > 0 {
 				prevBalance := monthHistories[i-1].Balance
 				deltaValue := (history.Balance - prevBalance) / prevBalance * 100
-				roundedDelta := int(math.Round(deltaValue))
-				delta = fmt.Sprintf("(%+d%%)", roundedDelta)
+				delta = fmt.Sprintf("(%+d%%)", int(math.Round(deltaValue)))
 			}
 			totalResults.WriteString(fmt.Sprintf("%02d.%02d: %d %s\n", history.Date.Month(), history.Date.Day(), int(history.Balance), delta))
 		}
 
 		totalResults.WriteString(strings.Repeat("-", 40) + "\n")
-		totalResults.WriteString("\n\n")
+		totalResults.WriteString("\n")
 	}
+
+	overallTotalDelta := (totalCurrentBalance - totalInitialBalance) / totalInitialBalance * 100
+	totalResults.WriteString(strings.Repeat("=", 40) + "\n")
+	totalResults.WriteString(fmt.Sprintf("Total Balance: %d → %d\n", int(totalInitialBalance), int(totalCurrentBalance)))
+	totalResults.WriteString(fmt.Sprintf("Total Profit: %+7.2f%%\n", overallTotalDelta))
+	totalResults.WriteString(strings.Repeat("=", 40) + "\n")
+
 	return totalResults.String(), nil
 }
 
@@ -107,10 +119,11 @@ func initHistoryInS3(bucketName, fileName string) ([]BalanceHistory, error) {
 
 	if err != nil {
 		var builder strings.Builder
+		var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
 
 		builder.WriteString("Date,Account,Balance\n")
 		for _, acc := range Accounts {
-			builder.WriteString(fmt.Sprintf("%s,%s,0\n", time.Now().Format("2006-01-02"), acc.Label))
+			builder.WriteString(fmt.Sprintf("%s,%s,0\n", time.Now().In(jst).Format("2006-01-02"), acc.Label))
 		}
 		fileContent := builder.String()
 

@@ -20,11 +20,6 @@ func trimQuantity(quantity, stepSize float64) float64 {
 	return rounded
 }
 
-func trimPrice(price, tickSize float64) float64 {
-	trimmedPrice := math.Round(price/tickSize) * tickSize
-	return trimmedPrice
-}
-
 func GetStepSizeForSymbol(client *futures.Client, symbol string) (float64, error) {
 	info, err := client.NewExchangeInfoService().Do(context.Background())
 	if err != nil {

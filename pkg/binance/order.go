@@ -269,6 +269,22 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 		return err
 	}
 
+	openOrders, err := client.NewListOpenOrdersService().Symbol(symbol).Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error fetching open orders: %v", err)
+	}
+
+	for _, order := range openOrders {
+		if order.Type == futures.OrderTypeLimit {
+			_, err := client.NewCancelOrderService().Symbol(symbol).OrderID(order.OrderID).Do(context.Background())
+			if err != nil {
+				return fmt.Errorf("error canceling order %d: %v", order.OrderID, err)
+			} else {
+				log.Printf("Canceled order %d\n", order.OrderID)
+			}
+		}
+	}
+
 	currentPosition, err := client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		return fmt.Errorf("error fetching current position: %v", err)
@@ -277,8 +293,14 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 	var matchingPosition *futures.AccountPosition
 	for _, pos := range currentPosition.Positions {
 		if pos.Symbol == symbol {
-			matchingPosition = pos
-			break
+			positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
+			if err != nil {
+				return fmt.Errorf("error convert position amount: %v", err)
+			}
+			if positionAmt != 0.0 {
+				matchingPosition = pos
+				break
+			}
 		}
 	}
 
@@ -298,19 +320,14 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 
 	if tpDetails, ok := details["tp"].(map[string]interface{}); ok {
 		tpPrice = tpDetails["price"].(float64)
-		tickSize, err := GetTickSizeForSymbol(client, symbol)
-		if err != nil {
-			return err
-		}
-		tpPrice = trimPrice(tpPrice, tickSize)
-
 		tpQtyPercent = tpDetails["quantity"].(float64)
+
 		stepSize, err := GetStepSizeForSymbol(client, symbol)
 		if err != nil {
 			log.Printf("Failed to fetch step size: %s", err)
 			return err
 		}
-		adjustedTpQty := trimQuantity(currentQty*tpQtyPercent/100, stepSize)
+		adjustedTpQty := trimQuantity(math.Abs(currentQty)*tpQtyPercent/100, stepSize)
 		tpQty = strconv.FormatFloat(adjustedTpQty, 'f', -1, 64)
 	}
 
@@ -341,5 +358,75 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 			return fmt.Errorf("error creating take profit limit order: %v", err)
 		}
 	}
+	return nil
+}
+
+func PlaceFuturesMarketCloseOrder(config *config.Config, account, symbol, positionSide string, closePercent float64) error {
+	symbol = FormatSymbol(symbol)
+
+	client, err := NewFuturesClient(config, account)
+	if err != nil {
+		return err
+	}
+
+	currentPosition, err := client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error fetching current position: %v", err)
+	}
+
+	var matchingPosition *futures.AccountPosition
+	for _, pos := range currentPosition.Positions {
+		if pos.Symbol == symbol {
+			positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
+			if err != nil {
+				return fmt.Errorf("error convert position amount: %v", err)
+			}
+			if positionAmt != 0.0 {
+				matchingPosition = pos
+				break
+			}
+		}
+	}
+
+	if matchingPosition == nil {
+		return fmt.Errorf("no matching position found for symbol: %s", symbol)
+	}
+
+	currentQtyStr := matchingPosition.PositionAmt
+	currentQty, err := strconv.ParseFloat(currentQtyStr, 64)
+	if err != nil {
+		return err
+	}
+
+	closeQty := closePercent / 100 * math.Abs(currentQty)
+	stepSize, err := GetStepSizeForSymbol(client, symbol)
+	if err != nil {
+		return err
+	}
+
+	adjustedCloseQty := trimQuantity(closeQty, stepSize)
+	closeQtyStr := strconv.FormatFloat(adjustedCloseQty, 'f', -1, 64)
+
+	var orderSide futures.SideType
+	if positionSide == "long" {
+		orderSide = futures.SideTypeSell
+	} else if positionSide == "short" {
+		orderSide = futures.SideTypeBuy
+	} else {
+		return fmt.Errorf("invalid positionSide: %s", positionSide)
+	}
+
+	_, err = client.NewCreateOrderService().
+		Symbol(symbol).
+		Side(orderSide).
+		PositionSide(futures.PositionSideType(positionSide)).
+		Type(futures.OrderTypeMarket).
+		Quantity(closeQtyStr).
+		Do(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("error creating market close order: %v", err)
+	}
+
 	return nil
 }

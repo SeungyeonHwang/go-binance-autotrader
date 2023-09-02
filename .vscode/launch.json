@@ -3,6 +3,32 @@
         {
             "type": "aws-sam",
             "request": "direct-invoke",
+            "name": "go-binance-autotrader:SwingCloseOrderFunction",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "SwingCloseOrderFunction"
+            },
+            "api": {
+                "path": "/swing/close",
+                "httpMethod": "post",
+                "payload": {
+                    "json": {
+                        "account": "sub2",
+                        "symbol": "litusdt",
+                        "positionSide": "short",
+                        "close": 100
+                    }
+                }
+            },
+            "aws": {
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
             "name": "go-binance-autotrader:SwingStopLossTakeProfitPartialFunction",
             "invokeTarget": {
                 "target": "api",
@@ -14,20 +40,19 @@
                 "httpMethod": "post",
                 "payload": {
                     "json": {
-    "account": "master",
-    "symbol": "ethusdt",
-    "positionSide": "short",
-    "tp": {
-			"price": 1636.76,
-			"quantity": 50
-		}
+                        "account": "master",
+                        "symbol": "tomousdt",
+                        "positionSide": "long",
+                        "tp":{
+                            "price":1.2123,
+                            "quantity":50
+                        }
 }
-	
-                },
-            },            
+                }
+            },
             "aws": {
-            "credentials": "profile:hwang_personal",
-            "region": "ap-northeast-1"
+                "credentials": "profile:hwang_personal",
+                "region": "ap-northeast-1"
             }
         },
         {

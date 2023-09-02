@@ -28,3 +28,10 @@ type PartialTakeProfitPayload struct {
 	PositionSide string         `json:"positionSide"`
 	TP           *PriceQuantity `json:"tp,omitempty"`
 }
+
+type CloseOrderPayload struct {
+	Account      string  `json:"account"`
+	Symbol       string  `json:"symbol"`
+	PositionSide string  `json:"positionSide"`
+	Close        float64 `json:"close"`
+}

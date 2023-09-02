@@ -27,9 +27,14 @@ func (h *Handler) CheckBalance(c echo.Context) error {
 func (h *Handler) CheckHistory(c echo.Context) error {
 	val, err := binance.FetchAllHistory(h.Config, binance.BUCKET_NAME, binance.DB_NAME)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, val)
+		return c.String(http.StatusInternalServerError, "Error fetching history.")
 	}
-	return c.String(http.StatusOK, val)
+
+	if c.Path() == "/swing/history" {
+		return c.String(http.StatusOK, val)
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 // position
@@ -100,6 +105,20 @@ func (h *Handler) SetStopLossTakeProfitPartial(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to set partial take profit: %s", err.Error()))
 	}
 	return c.String(http.StatusOK, "TP(Partial) set successfully!")
+}
+
+// Close order
+func (h *Handler) CloseOrder(c echo.Context) error {
+	orderReq := new(CloseOrderPayload)
+	if err := c.Bind(orderReq); err != nil {
+		return c.String(http.StatusBadRequest, "Failed to parse request body")
+	}
+
+	err := binance.PlaceFuturesMarketCloseOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.Close)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to place close order: %s", err.Error()))
+	}
+	return c.String(http.StatusOK, "Close Order placed successfully!")
 }
 
 // db-clear

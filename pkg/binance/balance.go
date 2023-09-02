@@ -24,20 +24,19 @@ func FetchAllBalances(config *config.Config) (string, error) {
 			return "", err
 		}
 
-		resultBuilder.WriteString(":bank: " + acc.Label + "\n")
+		resultBuilder.WriteString(acc.Label + "\n")
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
 
 		if info, ok := SubInfos[acc.Label]; ok {
+			resultBuilder.WriteString("Method: " + info.Method + "\n")
 			unitPrice := int(float64(balance) * info.Amount * float64(info.Leverage))
-			resultBuilder.WriteString(":clock1: Time: " + info.Time + "\n")
-			resultBuilder.WriteString(":hammer_and_pick: Method: " + info.Method + "\n")
-			resultBuilder.WriteString(":rocket: Leverage: x" + strconv.Itoa(info.Leverage) + "\n")
-			resultBuilder.WriteString(":dollar: Unit Price: $" + fmt.Sprintf("%d", unitPrice) + "\n")
+			resultBuilder.WriteString("Leverage: x" + strconv.Itoa(info.Leverage) + "\n")
+			resultBuilder.WriteString("Unit Price: $" + fmt.Sprintf("%d", unitPrice) + "\n")
 		}
 
-		resultBuilder.WriteString(":moneybag: Balance: $" + fmt.Sprintf("%d", balance) + "\n")
+		resultBuilder.WriteString("Balance: $" + fmt.Sprintf("%d", balance) + "\n")
 		resultBuilder.WriteString(strings.Repeat("-", 40) + "\n")
-		resultBuilder.WriteString("\n\n")
+		resultBuilder.WriteString("\n")
 	}
 
 	return resultBuilder.String(), nil
@@ -178,7 +177,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 		totalProfitAllAccounts += totalCrossUnPnl
 		totalInitialMarginAllAccounts += totalInitialMargin
 
-		resultBuilder.WriteString(":bank: " + acc.label + "\n")
+		resultBuilder.WriteString(acc.label + "\n")
 		resultBuilder.WriteString(lineSeparator)
 
 		sign := ""
@@ -224,9 +223,11 @@ func FetchAllPositions(config *config.Config) (string, error) {
 				profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
 			}
 			entryPrice := position.EntryPrice
-			resultBuilder.WriteString(":coin: " + position.Symbol + ": " + profitStr + " [" + entryPrice + "]" + "\n")
+			resultBuilder.WriteString(position.Symbol + ": " + profitStr + " [" + entryPrice + "]" + "\n")
 		}
-		resultBuilder.WriteString(lineSeparator)
+		if len(positions) > 0 {
+			resultBuilder.WriteString(lineSeparator)
+		}
 		resultBuilder.WriteString("\n")
 	}
 
