@@ -13,6 +13,7 @@ import (
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
 	"github.com/adshao/go-binance/v2"
+	"github.com/adshao/go-binance/v2/futures"
 )
 
 func FetchAllBalances(config *config.Config) (string, error) {
@@ -169,6 +170,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 	lineSeparatorDouble := strings.Repeat("=", 40) + "\n"
 
 	for _, acc := range accounts {
+		leverage := getLeverage(ToUpper(acc.accountType))
 		positions, totalCrossUnPnl, availableBalance, totalInitialMargin, err := fetchPositions(acc.apiKey, acc.secretKey)
 		if err != nil {
 			return "", err
@@ -223,7 +225,13 @@ func FetchAllPositions(config *config.Config) (string, error) {
 				profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
 			}
 			entryPrice := position.EntryPrice
-			resultBuilder.WriteString(position.Symbol + ": " + profitStr + " [" + entryPrice + "]" + "\n")
+
+			positionSign := "↓"
+			if position.PositionSide == string(futures.PositionSideTypeLong) {
+				positionSign = "↑"
+			}
+			result := fmt.Sprintf("%s%s[x%d]: %s [%s]\n", position.Symbol, positionSign, leverage, profitStr, entryPrice)
+			resultBuilder.WriteString(result)
 		}
 		if len(positions) > 0 {
 			resultBuilder.WriteString(lineSeparator)
@@ -289,6 +297,7 @@ func fetchPositions(apiKey string, secretKey string) ([]Position, float64, float
 				UnrealizedProfit: p.UnrealizedProfit,
 				PositionAmt:      p.PositionAmt,
 				EntryPrice:       p.EntryPrice,
+				PositionSide:     string(p.PositionSide),
 			})
 		}
 	}

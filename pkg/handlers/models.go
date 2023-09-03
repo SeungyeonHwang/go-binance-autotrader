@@ -9,17 +9,15 @@ type TradingViewPayload struct {
 	Account      string `json:"account"`
 	Symbol       string `json:"symbol"`
 	PositionSide string `json:"positionSide"`
-	Leverage     int    `json:"leverage"`
 	Amount       int    `json:"amount"`
 	Entry        bool   `json:"entry,omitempty"`
 }
 
 type AllStopLossTakeProfitPayload struct {
-	Account      string  `json:"account"`
-	Symbol       string  `json:"symbol"`
-	PositionSide string  `json:"positionSide"`
-	TP           float64 `json:"tp"`
-	SL           float64 `json:"sl"`
+	Account string  `json:"account"`
+	Symbol  string  `json:"symbol"`
+	TP      float64 `json:"tp"`
+	SL      float64 `json:"sl"`
 }
 
 type PartialTakeProfitPayload struct {
@@ -30,8 +28,17 @@ type PartialTakeProfitPayload struct {
 }
 
 type CloseOrderPayload struct {
-	Account      string  `json:"account"`
-	Symbol       string  `json:"symbol"`
-	PositionSide string  `json:"positionSide"`
-	Close        float64 `json:"close"`
+	Account string  `json:"account"`
+	Symbol  string  `json:"symbol"`
+	Close   float64 `json:"close"`
+}
+
+type CloseAllOrderPayload struct {
+	Account string `json:"account"`
+}
+
+func NewTradingViewPayload() TradingViewPayload {
+	return TradingViewPayload{
+		Entry: true,
+	}
 }

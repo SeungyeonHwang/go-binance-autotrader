@@ -14,9 +14,10 @@ func SetUp(e *echo.Echo, h *handlers.Handler) {
 		swingAPI.GET("/history", h.CheckHistory)
 		swingAPI.GET("/position", h.CheckPosition)
 		swingAPI.POST("/webhook-order", h.WebhookOrder)
-		swingAPI.POST("/sltp-all", h.SetStopLossTakeProfitALL)
+		swingAPI.POST("/sltp-all", h.SetStopLossTakeProfitAll)
 		swingAPI.POST("/sltp-partial", h.SetStopLossTakeProfitPartial)
 		swingAPI.POST("/close", h.CloseOrder)
+		swingAPI.POST("/close-all", h.CloseAllOrder)
 		swingAPI.POST("/db-clear", h.DBClear)
 	}
 }

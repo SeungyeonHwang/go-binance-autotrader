@@ -2,8 +2,8 @@ package binance
 
 // Position Info
 const (
-	MASTER_TIME     = "4H"
-	MASTER_LEVERAGE = 5
+	MASTER_TIME     = "1H"
+	MASTER_LEVERAGE = 10
 	MASTER_AMOUNT   = 0.25
 	MASTER_METHOD   = "BTC:ETH"
 
@@ -18,8 +18,8 @@ const (
 	SUB2_METHOD   = "SWING"
 
 	SUB3_TIME     = "1H"
-	SUB3_LEVERAGE = 10
-	SUB3_AMOUNT   = 0.2
+	SUB3_LEVERAGE = 15
+	SUB3_AMOUNT   = 0.1
 	SUB3_METHOD   = "SWING"
 )
 

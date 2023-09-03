@@ -41,9 +41,10 @@ func NewFuturesClient(config *config.Config, account string) (*futures.Client, e
 	return binance.NewFuturesClient(acctConfig.APIKey, acctConfig.SecretKey), nil
 }
 
-func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSide string, leverage, amountInUSDT int, entry bool) error {
+func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSide string, amountInUSDT int, entry bool) error {
 	symbol = FormatSymbol(symbol)
 	positionSide = ToUpper(positionSide)
+	leverage := getLeverage(ToUpper(account))
 
 	client, err := NewFuturesClient(config, account)
 	if err != nil {
@@ -189,9 +190,8 @@ func roiValidation(apiKey, secretKey, targetSymbol string, leverage, amountInUSD
 	return 0, err
 }
 
-func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol, position string, tp, sl float64) error {
+func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol string, tp, sl float64) error {
 	symbol = FormatSymbol(symbol)
-	position = ToLower(position)
 
 	client, err := NewFuturesClient(config, account)
 	if err != nil {
@@ -220,15 +220,19 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol, pos
 	var positionSide futures.PositionSideType
 	var orderSide futures.SideType
 
-	if position == "long" {
-		positionSide = futures.PositionSideTypeLong
+	pos, err := getCurrentPosition(client, symbol)
+	if err != nil {
+		return err
+	}
+
+	if pos.PositionSide == futures.PositionSideTypeLong {
 		orderSide = futures.SideTypeSell
-	} else if position == "short" {
-		positionSide = futures.PositionSideTypeShort
+	} else if pos.PositionSide == futures.PositionSideTypeShort {
 		orderSide = futures.SideTypeBuy
 	} else {
-		return fmt.Errorf("invalid position: %s", position)
+		return fmt.Errorf("invalid position: %s", pos.PositionSide)
 	}
+	positionSide = pos.PositionSide
 
 	_, err = client.NewCreateOrderService().
 		Symbol(symbol).
@@ -262,7 +266,6 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol, pos
 func PlacePartialTakeProfitOrder(config *config.Config, details map[string]interface{}) error {
 	account := details["account"].(string)
 	symbol := FormatSymbol(details["symbol"].(string))
-	positionSide := details["positionSide"].(string)
 
 	client, err := NewFuturesClient(config, account)
 	if err != nil {
@@ -285,30 +288,12 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 		}
 	}
 
-	currentPosition, err := client.NewGetAccountService().Do(context.Background())
+	pos, err := getCurrentPosition(client, symbol)
 	if err != nil {
-		return fmt.Errorf("error fetching current position: %v", err)
+		return err
 	}
 
-	var matchingPosition *futures.AccountPosition
-	for _, pos := range currentPosition.Positions {
-		if pos.Symbol == symbol {
-			positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
-			if err != nil {
-				return fmt.Errorf("error convert position amount: %v", err)
-			}
-			if positionAmt != 0.0 {
-				matchingPosition = pos
-				break
-			}
-		}
-	}
-
-	if matchingPosition == nil {
-		return fmt.Errorf("no matching position found for symbol: %s", symbol)
-	}
-
-	currentQtyStr := matchingPosition.PositionAmt
+	currentQtyStr := pos.PositionAmt
 	currentQty, err := strconv.ParseFloat(currentQtyStr, 64)
 	if err != nil {
 		return err
@@ -331,24 +316,24 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 		tpQty = strconv.FormatFloat(adjustedTpQty, 'f', -1, 64)
 	}
 
+	var positionSide futures.PositionSideType
 	var orderSide futures.SideType
-	var positionSideType futures.PositionSideType
-	if positionSide == "long" {
+
+	if pos.PositionSide == futures.PositionSideTypeLong {
 		orderSide = futures.SideTypeSell
-		positionSideType = futures.PositionSideTypeLong
-	} else if positionSide == "short" {
+	} else if pos.PositionSide == futures.PositionSideTypeShort {
 		orderSide = futures.SideTypeBuy
-		positionSideType = futures.PositionSideTypeShort
 	} else {
-		return fmt.Errorf("invalid positionSide: %s", positionSide)
+		return fmt.Errorf("invalid positionSide: %s", pos.PositionSide)
 	}
+	positionSide = pos.PositionSide
 
 	if tpQty != "" && tpPrice != 0 {
 		tpStr := strconv.FormatFloat(tpPrice, 'f', -1, 64)
 		_, err = client.NewCreateOrderService().
 			Symbol(symbol).
 			Side(orderSide).
-			PositionSide(positionSideType).
+			PositionSide(positionSide).
 			Type(futures.OrderTypeLimit).
 			TimeInForce(futures.TimeInForceTypeGTC).
 			Quantity(tpQty).
@@ -361,7 +346,7 @@ func PlacePartialTakeProfitOrder(config *config.Config, details map[string]inter
 	return nil
 }
 
-func PlaceFuturesMarketCloseOrder(config *config.Config, account, symbol, positionSide string, closePercent float64) error {
+func PlaceFuturesMarketCloseOrder(config *config.Config, account, symbol string, closePercent float64) error {
 	symbol = FormatSymbol(symbol)
 
 	client, err := NewFuturesClient(config, account)
@@ -369,30 +354,12 @@ func PlaceFuturesMarketCloseOrder(config *config.Config, account, symbol, positi
 		return err
 	}
 
-	currentPosition, err := client.NewGetAccountService().Do(context.Background())
+	pos, err := getCurrentPosition(client, symbol)
 	if err != nil {
-		return fmt.Errorf("error fetching current position: %v", err)
+		return err
 	}
 
-	var matchingPosition *futures.AccountPosition
-	for _, pos := range currentPosition.Positions {
-		if pos.Symbol == symbol {
-			positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
-			if err != nil {
-				return fmt.Errorf("error convert position amount: %v", err)
-			}
-			if positionAmt != 0.0 {
-				matchingPosition = pos
-				break
-			}
-		}
-	}
-
-	if matchingPosition == nil {
-		return fmt.Errorf("no matching position found for symbol: %s", symbol)
-	}
-
-	currentQtyStr := matchingPosition.PositionAmt
+	currentQtyStr := pos.PositionAmt
 	currentQty, err := strconv.ParseFloat(currentQtyStr, 64)
 	if err != nil {
 		return err
@@ -407,14 +374,17 @@ func PlaceFuturesMarketCloseOrder(config *config.Config, account, symbol, positi
 	adjustedCloseQty := trimQuantity(closeQty, stepSize)
 	closeQtyStr := strconv.FormatFloat(adjustedCloseQty, 'f', -1, 64)
 
+	var positionSide futures.PositionSideType
 	var orderSide futures.SideType
-	if positionSide == "long" {
+
+	if pos.PositionSide == futures.PositionSideTypeLong {
 		orderSide = futures.SideTypeSell
-	} else if positionSide == "short" {
+	} else if pos.PositionSide == futures.PositionSideTypeShort {
 		orderSide = futures.SideTypeBuy
 	} else {
-		return fmt.Errorf("invalid positionSide: %s", positionSide)
+		return fmt.Errorf("invalid position: %s", pos.PositionSide)
 	}
+	positionSide = pos.PositionSide
 
 	_, err = client.NewCreateOrderService().
 		Symbol(symbol).
@@ -422,6 +392,76 @@ func PlaceFuturesMarketCloseOrder(config *config.Config, account, symbol, positi
 		PositionSide(futures.PositionSideType(positionSide)).
 		Type(futures.OrderTypeMarket).
 		Quantity(closeQtyStr).
+		Do(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("error creating market close order: %v", err)
+	}
+
+	return nil
+}
+
+func PlaceFuturesMarketCloseAllOrder(config *config.Config, account string) error {
+	client, err := NewFuturesClient(config, account)
+	if err != nil {
+		return err
+	}
+
+	accountInfo, err := client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error fetching account info: %v", err)
+	}
+
+	for _, pos := range accountInfo.Positions {
+		positionAmtStr := pos.PositionAmt
+		positionAmt, err := strconv.ParseFloat(positionAmtStr, 64)
+		if err != nil {
+			return fmt.Errorf("error converting position amount: %v", err)
+		}
+		positionAmtAbs := math.Abs(positionAmt)
+		if positionAmtAbs != 0.0 {
+			err := closePosition(client, pos.Symbol, strconv.FormatFloat(positionAmtAbs, 'f', -1, 64), pos.PositionSide)
+			if err != nil {
+				return fmt.Errorf("error closing position for %s: %v", pos.Symbol, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func getLeverage(account string) int {
+	leverageMap := map[string]int{
+		"MASTER": MASTER_LEVERAGE,
+		"SUB1":   SUB1_LEVERAGE,
+		"SUB2":   SUB2_LEVERAGE,
+		"SUB3":   SUB3_LEVERAGE,
+	}
+
+	leverage, exists := leverageMap[account]
+	if !exists {
+		return 1
+	}
+	return leverage
+}
+
+func closePosition(client *futures.Client, symbol string, qtyStr string, positionSide futures.PositionSideType) error {
+	var orderSide futures.SideType
+
+	if positionSide == futures.PositionSideTypeLong {
+		orderSide = futures.SideTypeSell
+	} else if positionSide == futures.PositionSideTypeShort {
+		orderSide = futures.SideTypeBuy
+	} else {
+		return fmt.Errorf("invalid position: %s", positionSide)
+	}
+
+	_, err := client.NewCreateOrderService().
+		Symbol(symbol).
+		Side(orderSide).
+		PositionSide(futures.PositionSideType(positionSide)).
+		Type(futures.OrderTypeMarket).
+		Quantity(qtyStr).
 		Do(context.Background())
 
 	if err != nil {

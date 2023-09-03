@@ -48,35 +48,26 @@ func (h *Handler) CheckPosition(c echo.Context) error {
 
 // webhook trigger order
 // https://x8oktqy9c1.execute-api.ap-northeast-1.amazonaws.com/Prod/swing/webhook-order
-//
-//		{
-//		  "account": "master" or "sub1",
-//		  "symbol": "{{ticker}}",
-//		  "positionSide": "long",
-//		  "leverage":15,
-//		  "amount": 30(unit price),
-//	   "entry":true(default false)
-//		}
 func (h *Handler) WebhookOrder(c echo.Context) error {
-	orderReq := new(TradingViewPayload)
-	if err := c.Bind(orderReq); err != nil {
+	orderReq := NewTradingViewPayload()
+	if err := c.Bind(&orderReq); err != nil {
 		return c.String(http.StatusBadRequest, "Failed to parse request body")
 	}
 
-	err := binance.PlaceFuturesMarketOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.Leverage, orderReq.Amount, orderReq.Entry)
+	err := binance.PlaceFuturesMarketOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.Amount, orderReq.Entry)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to place order: %s", err.Error()))
 	}
 	return c.String(http.StatusOK, "Order placed successfully!")
 }
 
-func (h *Handler) SetStopLossTakeProfitALL(c echo.Context) error {
+func (h *Handler) SetStopLossTakeProfitAll(c echo.Context) error {
 	orderReq := new(AllStopLossTakeProfitPayload)
 	if err := c.Bind(orderReq); err != nil {
 		return c.String(http.StatusBadRequest, "Failed to parse request body")
 	}
 
-	err := binance.PlaceALLStopLossTakeProfitOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.TP, orderReq.SL)
+	err := binance.PlaceALLStopLossTakeProfitOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.TP, orderReq.SL)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to set stop loss and take profit: %s", err.Error()))
 	}
@@ -114,11 +105,24 @@ func (h *Handler) CloseOrder(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Failed to parse request body")
 	}
 
-	err := binance.PlaceFuturesMarketCloseOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.PositionSide, orderReq.Close)
+	err := binance.PlaceFuturesMarketCloseOrder(h.Config, orderReq.Account, orderReq.Symbol, orderReq.Close)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to place close order: %s", err.Error()))
 	}
 	return c.String(http.StatusOK, "Close Order placed successfully!")
+}
+
+func (h *Handler) CloseAllOrder(c echo.Context) error {
+	orderReq := new(CloseAllOrderPayload)
+	if err := c.Bind(orderReq); err != nil {
+		return c.String(http.StatusBadRequest, "Failed to parse request body")
+	}
+
+	err := binance.PlaceFuturesMarketCloseAllOrder(h.Config, orderReq.Account)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to place close all order: %s", err.Error()))
+	}
+	return c.String(http.StatusOK, "Close All Order placed successfully!")
 }
 
 // db-clear

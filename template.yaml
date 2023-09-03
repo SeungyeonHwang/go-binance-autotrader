@@ -127,6 +127,13 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingCloseOrderFunction.Arn}/invocations
+          /swing/close-all:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SwingCloseAllOrderFunction.Arn}/invocations
 
   SwingBalanceFunction:
     Type: AWS::Serverless::Function
@@ -238,4 +245,18 @@ Resources:
           Type: Api
           Properties:
             Path: /swing/close
+            Method: post
+
+  SwingCloseAllOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cmd/swing
+      Handler: main.go
+      Runtime: go1.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        SwingWebHookOrder:
+          Type: Api
+          Properties:
+            Path: /swing/close-all
             Method: post

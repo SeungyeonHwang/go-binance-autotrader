@@ -71,9 +71,9 @@ func getCurrentFuturesPrice(client *futures.Client, symbol string) (float64, err
 func FormatSymbol(s string) string {
 	s = strings.ToUpper(s)
 	if strings.Contains(s, "USDT") {
-		s = strings.Split(s, "USDT")[0] + "USDT"
+		return strings.Split(s, "USDT")[0] + "USDT"
 	}
-	return s
+	return s + "USDT"
 }
 
 func ToUpper(s string) string {
