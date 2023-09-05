@@ -224,8 +224,13 @@ func FetchAllPositions(config *config.Config) (string, error) {
 			if profit > 0 {
 				profitStr = fmt.Sprintf("+%.1f (+%.2f%%)", profit, roi)
 			}
-			entryPrice := position.EntryPrice
 
+			entryPriceFloat, err := strconv.ParseFloat(position.EntryPrice, 64)
+			if err != nil {
+				return "", fmt.Errorf("failed to parse entryPrice: %v", err)
+			}
+
+			entryPrice := strconv.FormatFloat(entryPriceFloat, 'f', 5, 64)
 			positionSign := "↓"
 			if position.PositionSide == string(futures.PositionSideTypeLong) {
 				positionSign = "↑"

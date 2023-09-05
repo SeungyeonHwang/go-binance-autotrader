@@ -190,7 +190,7 @@ func roiValidation(apiKey, secretKey, targetSymbol string, leverage, amountInUSD
 	return 0, err
 }
 
-func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol string, tp, sl float64) error {
+func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol string, tp, sl *float64) error {
 	symbol = FormatSymbol(symbol)
 
 	client, err := NewFuturesClient(config, account)
@@ -214,9 +214,6 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 		}
 	}
 
-	tpStr := strconv.FormatFloat(tp, 'f', -1, 64)
-	slStr := strconv.FormatFloat(sl, 'f', -1, 64)
-
 	var positionSide futures.PositionSideType
 	var orderSide futures.SideType
 
@@ -234,30 +231,36 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 	}
 	positionSide = pos.PositionSide
 
-	_, err = client.NewCreateOrderService().
-		Symbol(symbol).
-		Side(orderSide).
-		Type(futures.OrderTypeStopMarket).
-		PositionSide(positionSide).
-		Quantity("0.0").
-		StopPrice(slStr).
-		ClosePosition(true).
-		Do(context.Background())
-	if err != nil {
-		return fmt.Errorf("error creating stop market order: %v", err)
+	if sl != nil {
+		slStr := strconv.FormatFloat(*sl, 'f', -1, 64)
+		_, err = client.NewCreateOrderService().
+			Symbol(symbol).
+			Side(orderSide).
+			Type(futures.OrderTypeStopMarket).
+			PositionSide(positionSide).
+			Quantity("0.0").
+			StopPrice(slStr).
+			ClosePosition(true).
+			Do(context.Background())
+		if err != nil {
+			return fmt.Errorf("error creating stop market order: %v", err)
+		}
 	}
 
-	_, err = client.NewCreateOrderService().
-		Symbol(symbol).
-		Side(orderSide).
-		Type(futures.OrderTypeTakeProfitMarket).
-		PositionSide(positionSide).
-		Quantity("0.0").
-		StopPrice(tpStr).
-		ClosePosition(true).
-		Do(context.Background())
-	if err != nil {
-		return fmt.Errorf("error creating take profit market order: %v", err)
+	if tp != nil {
+		tpStr := strconv.FormatFloat(*tp, 'f', -1, 64)
+		_, err = client.NewCreateOrderService().
+			Symbol(symbol).
+			Side(orderSide).
+			Type(futures.OrderTypeTakeProfitMarket).
+			PositionSide(positionSide).
+			Quantity("0.0").
+			StopPrice(tpStr).
+			ClosePosition(true).
+			Do(context.Background())
+		if err != nil {
+			return fmt.Errorf("error creating take profit market order: %v", err)
+		}
 	}
 
 	return nil

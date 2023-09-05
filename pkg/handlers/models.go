@@ -14,10 +14,10 @@ type TradingViewPayload struct {
 }
 
 type AllStopLossTakeProfitPayload struct {
-	Account string  `json:"account"`
-	Symbol  string  `json:"symbol"`
-	TP      float64 `json:"tp"`
-	SL      float64 `json:"sl"`
+	Account string   `json:"account"`
+	Symbol  string   `json:"symbol"`
+	TP      *float64 `json:"tp,omitempty"`
+	SL      *float64 `json:"sl,omitempty"`
 }
 
 type PartialTakeProfitPayload struct {
