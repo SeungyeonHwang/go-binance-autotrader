@@ -133,30 +133,6 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		log.Printf("Futures Market Order failed: %s", err)
 		return err
 	}
-
-	msg := ":bell: Order has been successfully created.\n"
-	msg += "Account: " + account + "\n"
-	msg += "Symbol: " + symbol + "\n"
-	msg += "Position: " + positionSide + "\n"
-	msg += "Leverage: " + fmt.Sprintf("x%d", leverage) + "\n"
-	msg += "Order Amount: " + fmt.Sprintf("%d USDT", amountInUSDT)
-
-	slackURLMap := map[string]string{
-		MASTER_ACCOUNT: SLACK_MASTER,
-		SUB1_ACCOUNT:   SLACK_SUB1,
-		SUB2_ACCOUNT:   SLACK_SUB2,
-		SUB3_ACCOUNT:   SLACK_SUB3,
-	}
-
-	slackURL, found := slackURLMap[strings.ToLower(account)]
-	if !found {
-		return fmt.Errorf("invalid account provided: %s", account)
-	}
-
-	err = SendSlackNotification(slackURL, msg)
-	if err != nil {
-		log.Printf("Failed to send Slack notification: %s", err)
-	}
 	return nil
 }
 
@@ -204,7 +180,7 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 	}
 
 	for _, order := range openOrders {
-		if order.ClosePosition {
+		if order.ClosePosition || order.Type == futures.OrderTypeLimit {
 			_, err := client.NewCancelOrderService().Symbol(symbol).OrderID(order.OrderID).Do(context.Background())
 			if err != nil {
 				return fmt.Errorf("error canceling order %d: %v", order.OrderID, err)
@@ -231,6 +207,20 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 	}
 	positionSide = pos.PositionSide
 
+	// for limit tp
+	stepSize, err := GetStepSizeForSymbol(client, symbol)
+	if err != nil {
+		log.Printf("Failed to fetch step size: %s", err)
+		return err
+	}
+	positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
+	if err != nil {
+		log.Printf("Error converting positionAmt to float for symbol %s: %v", pos.Symbol, err)
+	}
+	halfPositionQty := trimQuantity(math.Abs(positionAmt/2), stepSize)
+	halfPositionQtyStr := strconv.FormatFloat(halfPositionQty, 'f', -1, 64)
+	// ---------------------------------------------
+
 	if sl != nil {
 		slStr := strconv.FormatFloat(*sl, 'f', -1, 64)
 		_, err = client.NewCreateOrderService().
@@ -250,13 +240,24 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 	if tp != nil {
 		tpStr := strconv.FormatFloat(*tp, 'f', -1, 64)
 		_, err = client.NewCreateOrderService().
+			// TP(100%)
+			// Symbol(symbol).
+			// Side(orderSide).
+			// Type(futures.OrderTypeTakeProfitMarket).
+			// PositionSide(positionSide).
+			// Quantity("0.0").
+			// StopPrice(tpStr).
+			// ClosePosition(true).
+			// Do(context.Background())
+
+			// TP(50%)
 			Symbol(symbol).
 			Side(orderSide).
-			Type(futures.OrderTypeTakeProfitMarket).
 			PositionSide(positionSide).
-			Quantity("0.0").
-			StopPrice(tpStr).
-			ClosePosition(true).
+			Type(futures.OrderTypeLimit).
+			TimeInForce(futures.TimeInForceTypeGTC).
+			Quantity(halfPositionQtyStr).
+			Price(tpStr).
 			Do(context.Background())
 		if err != nil {
 			return fmt.Errorf("error creating take profit market order: %v", err)

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SeungyeonHwang/go-binance-autotrader/config"
+	"github.com/SeungyeonHwang/go-binance-autotrader/pkg/utilities"
 	"github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
 )
@@ -230,7 +231,7 @@ func FetchAllPositions(config *config.Config) (string, error) {
 				return "", fmt.Errorf("failed to parse entryPrice: %v", err)
 			}
 
-			entryPrice := strconv.FormatFloat(entryPriceFloat, 'f', 5, 64)
+			entryPrice := utilities.FormatFloat(entryPriceFloat)
 			positionSign := "↓"
 			if position.PositionSide == string(futures.PositionSideTypeLong) {
 				positionSign = "↑"
