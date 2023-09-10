@@ -75,7 +75,7 @@ func PlaceFuturesMarketOrder(config *config.Config, account, symbol, positionSid
 		}
 	}
 
-	if err := changeLeverage(client.APIKey, client.SecretKey, symbol, leverage); err != nil {
+	if err := changeLeverage(client, symbol, leverage); err != nil {
 		log.Printf("Failed to set leverage: %s", err)
 		return err
 	}
