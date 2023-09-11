@@ -2,33 +2,29 @@ package binance
 
 // Position Info
 const (
-	MASTER_TIME     = "1H"
+	MASTER_TIME     = "4H"
 	MASTER_LEVERAGE = 7
 	MASTER_AMOUNT   = 0.2
 	MASTER_METHOD   = "BTC/ETH"
 
-	SUB1_TIME     = "1H"
+	SUB1_TIME     = "4H"
 	SUB1_LEVERAGE = 10
 	SUB1_AMOUNT   = 0.2
 	SUB1_METHOD   = "SWING"
 
-	SUB2_TIME     = "1H"
+	SUB2_TIME     = "4H"
 	SUB2_LEVERAGE = 10
 	SUB2_AMOUNT   = 0.2
 	SUB2_METHOD   = "SWING"
 
-	SUB3_TIME     = "1H"
+	SUB3_TIME     = "4H"
 	SUB3_LEVERAGE = 10
 	SUB3_AMOUNT   = 0.2
 	SUB3_METHOD   = "SWING"
 )
 
 const (
-	baseURL      = "https://fapi.binance.com"
-	SLACK_SUB1   = "https://hooks.slack.com/services/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"
-	SLACK_SUB2   = "https://hooks.slack.com/services/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"
-	SLACK_SUB3   = "https://hooks.slack.com/services/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"
-	SLACK_MASTER = "https://hooks.slack.com/services/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"
+	baseURL = "https://fapi.binance.com"
 )
 
 const (

@@ -47,7 +47,6 @@ func (h *Handler) CheckPosition(c echo.Context) error {
 }
 
 // webhook trigger order
-// https://x8oktqy9c1.execute-api.ap-northeast-1.amazonaws.com/Prod/swing/webhook-order
 func (h *Handler) WebhookOrder(c echo.Context) error {
 	orderReq := NewTradingViewPayload()
 	if err := c.Bind(&orderReq); err != nil {
