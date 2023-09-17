@@ -167,8 +167,8 @@ func FetchAllPositions(config *config.Config) (string, error) {
 	var totalProfitAllAccounts float64
 	var totalInitialMarginAllAccounts float64
 	var resultBuilder strings.Builder
-	lineSeparator := strings.Repeat("-", 40) + "\n"
-	lineSeparatorDouble := strings.Repeat("=", 40) + "\n"
+	lineSeparator := strings.Repeat("-", 50) + "\n"
+	lineSeparatorDouble := strings.Repeat("=", 50) + "\n"
 
 	for _, acc := range accounts {
 		leverage := getLeverage(ToUpper(acc.accountType))
@@ -236,7 +236,10 @@ func FetchAllPositions(config *config.Config) (string, error) {
 			if position.PositionSide == string(futures.PositionSideTypeLong) {
 				positionSign = "↑"
 			}
-			result := fmt.Sprintf("%s%s[x%d]: %s [%s]\n", position.Symbol, positionSign, leverage, profitStr, entryPrice)
+			positionAmtInUSDT := amt * entryPriceFloat
+			positionAmtStr := fmt.Sprintf("%.2f", positionAmtInUSDT)
+
+			result := fmt.Sprintf("%s%s[x%d]: %s [%s / %sUSDT]\n", position.Symbol, positionSign, leverage, profitStr, entryPrice, positionAmtStr)
 			resultBuilder.WriteString(result)
 		}
 		if len(positions) > 0 {
