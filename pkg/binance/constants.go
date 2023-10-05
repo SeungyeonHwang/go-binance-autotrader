@@ -2,7 +2,7 @@ package binance
 
 // Position Info
 const (
-	TIME = "15min/1D"
+	TIME = "1H"
 
 	MASTER_TIME     = TIME
 	MASTER_LEVERAGE = 10
