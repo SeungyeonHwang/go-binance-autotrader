@@ -208,17 +208,17 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 	positionSide = pos.PositionSide
 
 	// for limit tp
-	stepSize, err := GetStepSizeForSymbol(client, symbol)
-	if err != nil {
-		log.Printf("Failed to fetch step size: %s", err)
-		return err
-	}
-	positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
-	if err != nil {
-		log.Printf("Error converting positionAmt to float for symbol %s: %v", pos.Symbol, err)
-	}
-	halfPositionQty := trimQuantity(math.Abs(positionAmt/2), stepSize)
-	halfPositionQtyStr := strconv.FormatFloat(halfPositionQty, 'f', -1, 64)
+	// stepSize, err := GetStepSizeForSymbol(client, symbol)
+	// if err != nil {
+	// 	log.Printf("Failed to fetch step size: %s", err)
+	// 	return err
+	// }
+	// positionAmt, err := strconv.ParseFloat(pos.PositionAmt, 64)
+	// if err != nil {
+	// 	log.Printf("Error converting positionAmt to float for symbol %s: %v", pos.Symbol, err)
+	// }
+	// halfPositionQty := trimQuantity(math.Abs(positionAmt/2), stepSize)
+	// halfPositionQtyStr := strconv.FormatFloat(halfPositionQty, 'f', -1, 64)
 	// ---------------------------------------------
 
 	if sl != nil {
@@ -241,24 +241,24 @@ func PlaceALLStopLossTakeProfitOrder(config *config.Config, account, symbol stri
 		tpStr := strconv.FormatFloat(*tp, 'f', -1, 64)
 		_, err = client.NewCreateOrderService().
 			// TP(100%)
-			// Symbol(symbol).
-			// Side(orderSide).
-			// Type(futures.OrderTypeTakeProfitMarket).
-			// PositionSide(positionSide).
-			// Quantity("0.0").
-			// StopPrice(tpStr).
-			// ClosePosition(true).
-			// Do(context.Background())
-
-			// TP(50%)
 			Symbol(symbol).
 			Side(orderSide).
+			Type(futures.OrderTypeTakeProfitMarket).
 			PositionSide(positionSide).
-			Type(futures.OrderTypeLimit).
-			TimeInForce(futures.TimeInForceTypeGTC).
-			Quantity(halfPositionQtyStr).
-			Price(tpStr).
+			Quantity("0.0").
+			StopPrice(tpStr).
+			ClosePosition(true).
 			Do(context.Background())
+
+			// TP(50%)
+			// Symbol(symbol).
+			// Side(orderSide).
+			// PositionSide(positionSide).
+			// Type(futures.OrderTypeLimit).
+			// TimeInForce(futures.TimeInForceTypeGTC).
+			// Quantity(halfPositionQtyStr).
+			// Price(tpStr).
+			// Do(context.Background())
 		if err != nil {
 			return fmt.Errorf("error creating take profit market order: %v", err)
 		}
